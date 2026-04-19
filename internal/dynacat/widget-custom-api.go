@@ -701,6 +701,43 @@ var customAPITemplateFuncs = func() template.FuncMap {
 		"hide": func() template.HTML {
 			return template.HTML(customAPIHideWidgetSentinel)
 		},
+		// list creates a []any from the given arguments, enabling range iteration
+		// over dynamically constructed slices in templates.
+		"list": func(items ...any) []any {
+			return items
+		},
+		// append adds an item to a []any slice and returns the new slice.
+		"append": func(slice []any, item any) []any {
+			return append(slice, item)
+		},
+		// uniq returns a new []any slice with duplicate values removed,
+		// preserving the order of first occurrence.
+		"uniq": func(slice []any) []any {
+			seen := make(map[any]struct{})
+			out := make([]any, 0, len(slice))
+			for _, v := range slice {
+				if _, ok := seen[v]; !ok {
+					seen[v] = struct{}{}
+					out = append(out, v)
+				}
+			}
+			return out
+		},
+		// sortAlpha sorts a []any slice of strings alphabetically ascending.
+		"sortAlpha": func(slice []any) []any {
+			strs := make([]string, 0, len(slice))
+			for _, v := range slice {
+				if s, ok := v.(string); ok {
+					strs = append(strs, s)
+				}
+			}
+			sort.Strings(strs)
+			out := make([]any, len(strs))
+			for i, s := range strs {
+				out[i] = s
+			}
+			return out
+		},
 	}
 
 	for key, value := range globalTemplateFunctions {
