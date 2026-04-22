@@ -6,7 +6,7 @@
   <a href="https://www.paypal.com/paypalme/imartur">Sponsor</a> 
 </p>
 <p align="center">
-  <a href="https://github.com/glanceapp/community-widgets">Glance Community widgets</a> •
+  <a href="https://github.com/Panonim/dynawidgets">Dynawidgets repo</a> •
   <a href="https://dynacat.artur.zone/preconfigured-pages">Preconfigured pages</a> •
   <a href="https://dynacat.artur.zone/themes">Themes</a> 
 </p>
@@ -172,6 +172,21 @@ This is almost always caused by the browser extension Dark Reader. To fix this, 
 <summary><strong>cannot unmarshal !!map into []dynacat.page</strong></summary>
 
 The most common cause of this is having a `pages` key in your `dynacat.yml` and then also having a `pages` key inside one of your included pages. To fix this, remove the `pages` key from the top of your included pages.
+
+</details>
+
+<details>
+<summary><strong>Cannot embed Dynacat in an iframe</strong></summary>
+
+By default Dynacat only allows itself to be embedded on the same origin (`frame-ancestors 'self'`). To allow embedding from another host such as Homepage, add the `allowed-embed-hosts` option under `server` in your `dynacat.yml`:
+
+```yaml
+server:
+  allowed-embed-hosts:
+    - https://homepage.mydomain.com
+```
+
+You can list multiple origins. Each entry must be a full origin including the scheme (e.g. `https://`).
 
 </details>
 

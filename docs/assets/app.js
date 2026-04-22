@@ -259,6 +259,7 @@ let currentPage = 'home';
 let forceInstantScroll = false;
 let navigationRequestId = 0;
 let isHomeCursorTrackingActive = false;
+let spinnerTimer = null;
 
 const docCache = new Map();
 const pendingDocLoads = new Map();
@@ -585,6 +586,11 @@ function setHomeCursorTracking(enabled) {
 
 async function navigateTo(pageId, hash, skipPushState) {
   const requestId = ++navigationRequestId;
+  clearTimeout(spinnerTimer);
+  spinnerTimer = setTimeout(() => {
+    if (requestId !== navigationRequestId) return;
+    contentEl.innerHTML = '<div class="page-loading"><div class="page-spinner" aria-hidden="true"></div></div>';
+  }, 250);
 
   pageId = pageId || 'home';
   const isNotFound = pageId !== 'home' && !PAGES[pageId];
@@ -1318,6 +1324,7 @@ async function renderDoc(pageId, hash, requestId) {
   highlightCode(wrapper);
   handleContentLinks(wrapper);
 
+  clearTimeout(spinnerTimer);
   destroyToc();
   contentEl.innerHTML = '';
   contentEl.appendChild(wrapper);
@@ -1326,15 +1333,37 @@ async function renderDoc(pageId, hash, requestId) {
 
   // Scroll to hash if provided
   if (hash) {
-    setTimeout(() => {
-      if (requestId !== navigationRequestId) return;
+    // Show overlay until images finish loading so scroll hits correct Y position
+    const overlayEl = document.createElement('div');
+    overlayEl.className = 'page-loading-overlay';
+    overlayEl.innerHTML = '<div class="page-spinner" aria-hidden="true"></div>';
+    document.body.appendChild(overlayEl);
+
+    if (mainEl) mainEl.scrollTo(0, 0);
+    else window.scrollTo(0, 0);
+
+    const images = Array.from(wrapper.querySelectorAll('img'));
+    const imagesLoaded = images.length
+      ? Promise.all(images.map(img => img.complete
+          ? Promise.resolve()
+          : new Promise(r => {
+              img.addEventListener('load', r, { once: true });
+              img.addEventListener('error', r, { once: true });
+            })
+        ))
+      : Promise.resolve();
+    const timeout = new Promise(r => setTimeout(r, 3000));
+
+    Promise.race([imagesLoaded, timeout]).then(() => {
+      if (requestId !== navigationRequestId) { overlayEl.remove(); return; }
+      overlayEl.remove();
       const target = document.getElementById(hash);
       if (target) {
-        scrollToElementFast(target, { instant: forceInstantScroll });
+        scrollToElementFast(target, { instant: true });
         setFloatingTocActive(hash);
       }
       forceInstantScroll = false;
-    }, 80);
+    });
   } else {
     if (mainEl) {
       mainEl.scrollTo(0, 0);
@@ -1496,6 +1525,18 @@ async function renderHome() {
   let stargazersCount = 0;
   let pullCount = 0;
 
+  // Helper: check if cache is expired
+  function isCacheExpired(cacheKey, cacheTTL) {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (!cached) return true;
+      const { timestamp } = JSON.parse(cached);
+      return Date.now() - timestamp >= cacheTTL;
+    } catch (e) {
+      return true;
+    }
+  }
+
   // Try to get cached values
   try {
     const cached = localStorage.getItem('github_stargazers_cache');
@@ -1521,28 +1562,38 @@ async function renderHome() {
     }
   } catch (e) {}
 
-  // Fetch version tag in background
-  getVersionTag().then(tag => {
-    if (tag && tag !== versionTag) {
-      const versionEl = document.querySelector('.home-version');
-      if (versionEl) versionEl.textContent = tag;
-    }
-  }).catch(e => {});
+  // Fetch version tag in background only if cache expired
+  const versionCacheTTL = 1 * 24 * 60 * 60 * 1000;
+  if (isCacheExpired('version_tag_cache', versionCacheTTL)) {
+    getVersionTag().then(tag => {
+      if (tag && tag !== versionTag) {
+        const versionEl = document.querySelector('.home-version');
+        if (versionEl) versionEl.textContent = tag;
+      }
+    }).catch(e => {});
+  }
 
-  // Fetch fresh data in background
-  getGitHubStargazers().then(count => {
-    if (count > 0 && count !== stargazersCount) {
-      const el = document.querySelector('[data-stat="stargazers"]');
-      if (el) el.textContent = count;
-    }
-  }).catch(e => {});
+  // Fetch GitHub stargazers in background only if cache expired
+  const stargazersCacheTTL = 2 * 24 * 60 * 60 * 1000;
+  if (isCacheExpired('github_stargazers_cache', stargazersCacheTTL)) {
+    getGitHubStargazers().then(count => {
+      if (count > 0 && count !== stargazersCount) {
+        const el = document.querySelector('[data-stat="stargazers"]');
+        if (el) el.textContent = count;
+      }
+    }).catch(e => {});
+  }
 
-  getDockerPullCount().then(count => {
-    if (count > 0 && count !== pullCount) {
-      const el = document.querySelector('[data-stat="docker-pulls"]');
-      if (el) el.textContent = count;
-    }
-  }).catch(e => {});
+  // Fetch Docker pull count in background only if cache expired
+  const dockerCacheTTL = 2 * 24 * 60 * 60 * 1000;
+  if (isCacheExpired('docker_pull_count_cache', dockerCacheTTL)) {
+    getDockerPullCount().then(count => {
+      if (count > 0 && count !== pullCount) {
+        const el = document.querySelector('[data-stat="docker-pulls"]');
+        if (el) el.textContent = count;
+      }
+    }).catch(e => {});
+  }
 
   const features = [
     {
@@ -1605,6 +1656,7 @@ async function renderHome() {
     </button>
   `).join('');
 
+  clearTimeout(spinnerTimer);
   contentEl.innerHTML = `
     <div class="home-welcome">
 

@@ -206,6 +206,7 @@ server:
 | assets-path | string | no | /app/assets |
 | cache-dir | string | no | .cache |
 | db-path | string | no | /app/assets/dynacat.db |
+| allowed-embed-hosts | array of strings | no | |
 
 #### `host`
 The address which the server will listen on. Setting it to `localhost` means that only the machine that the server is running on will be able to access the dashboard. By default it will listen on all interfaces.
@@ -267,6 +268,20 @@ If the path is relative, it will be resolved relative to the Dynacat working dir
 
 #### `db-path`
 Path to the SQLite database file used for server-side todo storage. Only required when at least one `to-do` widget has `storage: server` set. If the path is relative, it will be resolved relative to the Dynacat working directory. The file will be created if it does not exist.
+
+#### `allowed-embed-hosts`
+A list of origins that are allowed to embed Dynacat in an `<iframe>`. By default, only the same origin is allowed (`frame-ancestors 'self'`). This is useful when you want to display Dynacat inside another dashboard such as Homepage.
+
+Example:
+
+```yaml
+server:
+  allowed-embed-hosts:
+    - https://homepage.mydomain.com
+    - https://other.mydomain.com
+```
+
+This sets the `Content-Security-Policy: frame-ancestors` directive to include the listed origins in addition to `'self'`.
 
 ## Document
 If you want to insert custom HTML into the `<head>` of the document for all pages, you can do so by using the `document` property. Example:
@@ -2782,8 +2797,8 @@ The ID of the todo list. If you want to have multiple todo lists, you must speci
 
 Controls where tasks are persisted. Accepted values:
 
-- `local` (default) — tasks are stored in the browser's localStorage, same as before. No server-side setup required.
-- `server` — tasks are stored in a SQLite database on the server. Tasks persist across browsers and server restarts. Requires `server.db-path` to be set (or uses the default `/app/assets/dynacat.db`).
+- `local` (default) - tasks are stored in the browser's localStorage, same as before. No server-side setup required.
+- `server` - tasks are stored in a SQLite database on the server. Tasks persist across browsers and server restarts. Requires `server.db-path` to be set (or uses the default `/app/assets/dynacat.db`).
 
 ##### `collapse-after`
 
@@ -2963,6 +2978,9 @@ Preview of `vertical-list`:
 Preview of `grid-cards`:
 
 ![](images/videos-widget-grid-cards-preview.png)
+
+##### `include-shorts`
+When set to `false` (default), Dynacat attempts to use YouTube's unofficial `UULF` playlist to exclude Shorts from the feed. This playlist does not exist for all channels - if it returns a 404, Dynacat automatically falls back to the standard channel feed (which includes Shorts). Setting this to `true` always uses the channel feed directly.
 
 ##### `video-url-template`
 Used to replace the default link for videos. Useful when you're running your own YouTube front-end. Example:
