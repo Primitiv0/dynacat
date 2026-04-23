@@ -1,0 +1,45 @@
+name: Deploy Docs
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+      - beta
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-docs
+
+      - name: Checkout beta branch
+        uses: actions/checkout@v4
+        with:
+          ref: beta
+          path: beta-docs
+
+      - name: Build deployment directory
+        run: |
+          mkdir -p deploy/docs
+          mkdir -p deploy/docs/beta
+          cp -r main-docs/docs/* deploy/docs/
+          cp -r beta-docs/docs/* deploy/docs/beta/
+          echo "✓ Stable docs copied to deploy/docs"
+          echo "✓ Beta docs copied to deploy/docs/beta"
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deploy
+          cname: dynacat.artur.zone

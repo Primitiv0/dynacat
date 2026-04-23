@@ -414,6 +414,19 @@ const savedTheme = localStorage.getItem('theme') || 'dark';
 applyTheme(savedTheme);
 themeToggleEl.addEventListener('click', toggleTheme);
 
+/* ─── Branch switcher ────────────────────────────────────────────────────── */
+
+const branchSelectEl = document.getElementById('branch-select');
+
+(function initBranchSwitcher() {
+  const path = window.location.pathname;
+  branchSelectEl.value = path.startsWith('/beta') ? '/beta/' : '/';
+  branchSelectEl.addEventListener('change', function () {
+    const hash = window.location.hash || '';
+    window.location.href = this.value + hash;
+  });
+})();
+
 /* ─── Mobile sidebar ─────────────────────────────────────────────────────── */
 
 function openSidebar() {
