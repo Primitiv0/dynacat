@@ -106,6 +106,7 @@ type page struct {
 	HideDesktopNavigation  bool    `yaml:"hide-desktop-navigation"`
 	CenterVertically       bool    `yaml:"center-vertically"`
 	HideFromNavigation     bool    `yaml:"hide-from-navigation"`
+	KeyBind                string  `yaml:"key-bind"`
 	HeadWidgets            widgets `yaml:"head-widgets"`
 	Columns                []struct {
 		Size    string  `yaml:"size"`
@@ -119,6 +120,15 @@ type page struct {
 
 func (p *page) DynamicUpdatesEnabled() bool {
 	return p.DynamicUpdates == nil || *p.DynamicUpdates
+}
+
+func (p *page) normalizeKeyBind() {
+	if p.KeyBind == "" {
+		return
+	}
+	if !strings.Contains(p.KeyBind, " ") {
+		p.KeyBind = "d " + p.KeyBind
+	}
 }
 
 func newConfigFromYAML(contents []byte) (*config, error) {
@@ -153,6 +163,8 @@ func newConfigFromYAML(contents []byte) (*config, error) {
 				}
 			}
 		}
+
+		config.Pages[p].normalizeKeyBind()
 	}
 
 	return config, nil

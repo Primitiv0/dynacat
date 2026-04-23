@@ -325,6 +325,7 @@ kbd:active {
     transition: color .3s, border-color .3s;
     font-size: var(--font-size-h3);
     flex-shrink: 0;
+    position: relative;
 }
 
 .nav-item:not(.nav-item-current):hover {
@@ -335,6 +336,29 @@ kbd:active {
 .nav-item.nav-item-current {
     border-bottom-color: var(--color-primary);
     color: var(--color-text-highlight);
+}
+
+.nav-keybind-hint {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 3px 7px;
+    border-radius: 3px;
+    opacity: 0;
+    color: var(--color-text-subdue);
+    letter-spacing: 0.5px;
+    pointer-events: none;
+    transition: opacity 0.1s ease-out, color 0.1s ease-out;
+    white-space: nowrap;
+    display: inline-block;
+    font-weight: 500;
+}
+
+.nav-keybind-hint.is-active {
+    opacity: 1;
+    color: var(--color-primary);
 }
 
 .logout-button {

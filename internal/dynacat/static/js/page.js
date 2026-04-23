@@ -223,9 +223,85 @@ function setupSearchBoxes() {
             document.removeEventListener("input", handleInput);
         });
 
+        // Setup keybinds early so they take priority over search
+        let keybindState = { pressedKeys: [], chordTimeout: null };
+        const nav = document.querySelector("nav.nav");
+
+        if (nav) {
+            const CHORD_TIMEOUT_MS = 1500;
+
+            function getLinks() {
+                return Array.from(nav.querySelectorAll("a[data-key-bind]"));
+            }
+
+            function normalizedBind(link) {
+                return link.dataset.keyBind.trim().toLowerCase();
+            }
+
+            function resetKeybindState() {
+                keybindState.pressedKeys = [];
+                getLinks().forEach(link => {
+                    const hint = link.querySelector(".nav-keybind-hint");
+                    if (hint) hint.classList.remove("is-active");
+                });
+            }
+
+            function activateMatchingHints(prefix) {
+                const p = prefix.join(" ");
+                getLinks().forEach(link => {
+                    const bind = normalizedBind(link);
+                    const hint = link.querySelector(".nav-keybind-hint");
+                    if (!hint) return;
+                    const isMatching = bind.startsWith(p);
+                    hint.classList.toggle("is-active", isMatching);
+                    if (isMatching && bind.includes(" ")) {
+                        const parts = bind.split(" ");
+                        hint.textContent = parts.slice(1).join(" ");
+                    }
+                });
+            }
+
+            document.addEventListener("keydown", (event) => {
+                const tag = document.activeElement.tagName;
+                if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+                if (document.activeElement.isContentEditable) return;
+                if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+                const key = event.key.toLowerCase();
+                if (!/^[a-z0-9]$/.test(key)) return;
+
+                clearTimeout(keybindState.chordTimeout);
+
+                const candidate = [...keybindState.pressedKeys, key];
+                const candidateStr = candidate.join(" ");
+
+                const links = getLinks();
+                const exactMatch = links.find(l => normalizedBind(l) === candidateStr);
+                const partialMatch = links.some(l => normalizedBind(l).startsWith(candidateStr + " "));
+
+                if (exactMatch) {
+                    event.preventDefault();
+                    resetKeybindState();
+                    window.location.href = exactMatch.href;
+                    return;
+                }
+
+                if (partialMatch) {
+                    event.preventDefault();
+                    keybindState.pressedKeys = candidate;
+                    activateMatchingHints(keybindState.pressedKeys);
+                    keybindState.chordTimeout = setTimeout(resetKeybindState, CHORD_TIMEOUT_MS);
+                    return;
+                }
+
+                resetKeybindState();
+            }, true); // Capture phase so it runs before search handler
+        }
+
         document.addEventListener("keydown", (event) => {
             if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
             if (event.code != "KeyS") return;
+            if (keybindState.pressedKeys.length > 0) return; // Don't trigger search if in chord
 
             inputElement.focus();
             event.preventDefault();

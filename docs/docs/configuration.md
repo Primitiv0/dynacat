@@ -489,6 +489,7 @@ pages:
 | center-vertically | boolean | no | false |
 | hide-desktop-navigation | boolean | no | false |
 | hide-from-navigation | boolean | no | false |
+| key-bind | string | no | |
 | show-mobile-header | boolean | no | false |
 | head-widgets | array | no | |
 | columns | array | yes | |
@@ -540,6 +541,48 @@ Whether to show the navigation links at the top of the page on desktop.
 
 #### `hide-from-navigation`
 Whether the page should be omitted from both the desktop and mobile navigation menus. When `true`, the page remains accessible via its slug (or links you place elsewhere) but does not appear in the navigation bar or the mobile navigation drawer.
+
+#### `key-bind`
+Assign a keyboard shortcut to navigate to this page. Pressing the configured key sequence from anywhere on the dashboard will immediately navigate to the page.
+
+The shortcut is only active when:
+- The current page has its navigation visible (i.e., `hide-desktop-navigation` is not `true`)
+- The target page is not hidden from the navigation menu (i.e., `hide-from-navigation` is not `true`)
+- Focus is not inside a text input, textarea, or select element
+
+A visual hint badge is shown on each nav link that has a keybind configured. The badge glows when you start typing a matching prefix.
+
+##### Key binding syntax
+
+A keybind is one or more keys separated by spaces. Each key is a single letter or digit.
+
+| Config value | Behavior |
+| ------------ | -------- |
+| `h` | Automatically expanded to `d h` — press `d` then `h` |
+| `d h` | Press `d`, release, then press `h` within 1 second |
+| `d a c` | Three-key sequence: `d` → `a` → `c` |
+| `1` | Automatically expanded to `d 1` — press `d` then `1` |
+
+> [!NOTE]
+>
+> A single character keybind is automatically prefixed with `d` to avoid conflicts with typing. If you want a different prefix, write the full sequence explicitly (e.g., `key-bind: "g h"`).
+
+Example:
+
+```yaml
+pages:
+  - name: Home
+    key-bind: "d h"
+    columns: ...
+
+  - name: Videos
+    key-bind: "d v"
+    columns: ...
+
+  - name: Homelab
+    key-bind: "d l"
+    columns: ...
+```
 
 #### `show-mobile-header`
 Whether to show a header displaying the name of the page on mobile. The header purposefully has a lot of vertical whitespace in order to push the content down and make it easier to reach on tall devices.

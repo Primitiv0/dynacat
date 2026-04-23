@@ -10,7 +10,7 @@
 {{ define "navigation-links" }}
 {{ range .AccessiblePages }}
 {{ if not .HideFromNavigation }}
-<a href="{{ $.App.Config.Server.BaseURL }}/{{ .Slug }}" class="nav-item{{ if eq .Slug $.Page.Slug }} nav-item-current{{ end }}"{{ if eq .Slug $.Page.Slug }} aria-current="page"{{ end }}>{{ .Title }}</a>
+<a href="{{ $.App.Config.Server.BaseURL }}/{{ .Slug }}" class="nav-item{{ if eq .Slug $.Page.Slug }} nav-item-current{{ end }}"{{ if eq .Slug $.Page.Slug }} aria-current="page"{{ end }}{{ if .KeyBind }} data-key-bind="{{ .KeyBind }}"{{ end }}>{{ .Title }}{{ if .KeyBind }}<span class="nav-keybind-hint">{{ .KeyBind }}</span>{{ end }}</a>
 {{ end }}
 {{ end }}
 {{ end }}
