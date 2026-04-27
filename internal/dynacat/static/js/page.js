@@ -599,6 +599,18 @@ function setupGroups() {
     }
 }
 
+function setupImageFallbacks() {
+    document.querySelectorAll("img[data-fallback-src]:not([loading=lazy])").forEach(img => {
+        img.addEventListener("error", function handler() {
+            img.removeEventListener("error", handler);
+            const fallback = img.dataset.fallbackSrc;
+            if (fallback && img.src !== fallback) {
+                img.src = fallback;
+            }
+        });
+    });
+}
+
 function setupLazyImages() {
     const images = document.querySelectorAll("img[loading=lazy]");
 
@@ -1221,6 +1233,7 @@ async function setupPage() {
         setupGroups();
         setupMasonries();
         setupDynamicRelativeTime();
+        setupImageFallbacks();
         setupLazyImages();
         setupPlayingProgressUpdater();
     } finally {
@@ -1320,6 +1333,7 @@ async function updateWidget(widgetElement) {
             setupGroups();
             setupMasonries();
             setupDynamicRelativeTime();
+            setupImageFallbacks();
             setupLazyImages();
             setupTruncatedElementTitles();
 
@@ -1759,6 +1773,7 @@ async function applyContentUpdate() {
         setupCollapsibleGrids();
         setupGroups();
         setupMasonries();
+        setupImageFallbacks();
         setupLazyImages();
         setupTruncatedElementTitles();
         setupPlayingThumbnailCropping();
@@ -1926,6 +1941,7 @@ function _runPostSettleSetup() {
     setupGroups();
     setupMasonries();
     setupDynamicRelativeTime();
+    setupImageFallbacks();
     setupLazyImages();
     setupTruncatedElementTitles();
     setupPlayingProgressUpdater();
