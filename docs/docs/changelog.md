@@ -5,6 +5,8 @@
 - Added start on page open for stopwatch widget
 - Fixed issue where groups would open multiple of the same links
 - Added caching for every widget 
+- Fixed issues with `markets` pulling
+- Allowed to invert colors in `markets` widget
 
 # Changes for 2.2.2
 - Resolved an issue where Reddit denied requests
