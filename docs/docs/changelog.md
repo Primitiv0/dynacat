@@ -2,6 +2,8 @@
 - Removed photos from latest-media widget
 - Fixed issue where latest-media widget wasn't receiving the correct thumbnail type from Plex
 - Every widget now supports `frameless: true`
+- Fixed issue with icons fallback when no svg is found 
+- Added diffrent header support for monitor widget
 
 # Changes for 2.2.3
 - Add utility functions for array manipulation -> https://github.com/Panonim/dynacat/pull/60
