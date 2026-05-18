@@ -1,4 +1,4 @@
-# Changes for 2.X.X
+# Changes for 2.3.0
 - Removed photos from latest-media widget
 - Fixed issue where latest-media widget wasn't receiving the correct thumbnail type from Plex
 - Every widget now supports `frameless: true`
@@ -14,6 +14,7 @@
 - Added ability to center nav-item elements on navbar on desktop -> https://github.com/Panonim/dynacat/pull/91
 - Added ability to hide logo from navbar -> https://github.com/Panonim/dynacat/pull/91
 - Fixed rendering user svg from branding correctly -> https://github.com/Panonim/dynacat/pull/91
+- Fixed issue where failed pulls from Youtube would block other fetches -> https://github.com/Panonim/dynacat/issues/94
 
 # Changes for 2.2.3
 - Add utility functions for array manipulation -> https://github.com/Panonim/dynacat/pull/60
