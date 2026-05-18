@@ -1191,7 +1191,45 @@ function initThemePicker() {
     })
 }
 
+function initDesktopNavigationAutoshow() {
+    const navContainer = document.querySelector(".header-container-navigation-hover");
+    if (!navContainer) {
+        return;
+    }
+
+    const navAutoshowKey = "dynacat-nav-autoshow";
+    const navLinks = navContainer.querySelectorAll(".nav-item");
+
+    if (sessionStorage.getItem(navAutoshowKey) === "1") {
+        sessionStorage.removeItem(navAutoshowKey);
+        navContainer.classList.add("nav-autoshow");
+
+        const hide = () => {
+            navContainer.classList.remove("nav-autoshow");
+            window.removeEventListener("mousemove", hide, { capture: true });
+            window.removeEventListener("scroll", hide, { capture: true });
+            navContainer.removeEventListener("mouseleave", hide, { capture: true });
+        }
+
+        window.addEventListener("mousemove", hide, { passive: true, once: true, capture: true });
+        window.addEventListener("scroll", hide, { passive: true, once: true, capture: true });
+        navContainer.addEventListener("mouseleave", hide, { once: true, capture: true });
+        setTimeout(() => {
+            hide();
+        }, 1800);
+    }
+
+    for (let i = 0; i < navLinks.length; i++) {
+        const navLink = navLinks[i];
+        navLink.addEventListener("click", () => {
+            sessionStorage.setItem(navAutoshowKey, "1");
+        });
+    }
+}
+
 async function setupPage() {
+    initDesktopNavigationAutoshow();
+
     initThemePicker();
 
     const pageElement = document.getElementById("page");

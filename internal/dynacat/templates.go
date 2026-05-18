@@ -19,6 +19,9 @@ var globalTemplateFunctions = template.FuncMap{
 	"containsStr": func(str, substr string) bool {
 		return strings.Contains(str, substr)
 	},
+	"hasSuffixFold": func(str, suffix string) bool {
+		return strings.HasSuffix(strings.ToLower(str), strings.ToLower(suffix))
+	},
 	"safeCSS": func(str string) template.CSS {
 		return template.CSS(str)
 	},
