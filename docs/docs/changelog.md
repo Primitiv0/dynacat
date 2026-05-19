@@ -15,6 +15,7 @@
 - Added ability to hide logo from navbar -> https://github.com/Panonim/dynacat/pull/91
 - Fixed rendering user svg from branding correctly -> https://github.com/Panonim/dynacat/pull/91
 - Fixed issue where failed pulls from Youtube would block other fetches -> https://github.com/Panonim/dynacat/issues/94
+- Made Github fetches faster -> https://github.com/Panonim/dynacat/pull/97
 
 # Changes for 2.2.3
 - Add utility functions for array manipulation -> https://github.com/Panonim/dynacat/pull/60
