@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"iter"
-	"log"
+	"log/slog"
 	"maps"
 	"net"
 	"os"
@@ -412,10 +412,7 @@ func configFilesWatcher(
 		for filePath := range newWatched {
 			if _, ok := previousWatched[filePath]; !ok {
 				if err := watcher.Add(filePath); err != nil {
-					log.Printf(
-						"Could not add file to watcher, changes to this file will not trigger a reload. path: %s, error: %v",
-						filePath, err,
-					)
+					slog.Warn("Could not add file to watcher, changes to this file will not trigger a reload", "path", filePath, "error", err)
 				}
 			}
 		}
