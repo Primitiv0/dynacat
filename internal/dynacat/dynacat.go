@@ -643,6 +643,7 @@ func (a *application) handlePageContentRequest(w http.ResponseWriter, r *http.Re
 	}()
 
 	w.Header().Set("X-Dynacat-Cache-Building", strconv.FormatBool(isCacheBuilding))
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 
 	if err != nil {
 		log.Printf("rendering page content template: %v", err)

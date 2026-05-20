@@ -2,6 +2,8 @@
 
 This repository is a community catalog of Dynacat widgets. Contributions are welcome, but they should follow the project structure and the widget-specific rules below.
 
+You can find a converter to speed up the process at -> https://widgets.artur.zone
+
 ## Governance
 
 These rules may change as the repository grows and the community evolves.

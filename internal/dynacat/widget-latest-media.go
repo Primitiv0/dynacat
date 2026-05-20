@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -17,6 +18,7 @@ var latestMediaWidgetTemplate = mustParseTemplate("latest-media.html", "widget-b
 
 type latestMediaWidget struct {
 	widgetBase  `yaml:",inline"`
+	Frameless   bool                    `yaml:"frameless"`
 	Hosts       []latestMediaHostConfig `yaml:"hosts"`
 	ItemCount   int                     `yaml:"item-count"`
 	Columns     int                     `yaml:"columns"`
@@ -220,6 +222,12 @@ func (widget *latestMediaWidget) fetchLatestItems(ctx context.Context, host *lat
 
 // --- Plex ---
 
+type plexIdentityResponse struct {
+	MediaContainer struct {
+		MachineIdentifier string `json:"machineIdentifier"`
+	} `json:"MediaContainer"`
+}
+
 type plexSectionsResponse struct {
 	MediaContainer struct {
 		Directory []struct {
@@ -252,6 +260,21 @@ func (widget *latestMediaWidget) fetchPlexLatest(ctx context.Context, host *late
 	client := ternary(host.AllowInsecure, defaultInsecureHTTPClient, defaultHTTPClient)
 	baseURL := strings.TrimRight(host.BaseURL, "/")
 
+	// Fetch machine identifier for deep links
+	var machineID string
+	identityURL := fmt.Sprintf("%s/identity", baseURL)
+	identityReq, err := http.NewRequestWithContext(ctx, "GET", identityURL, nil)
+	if err == nil {
+		identityReq.Header.Set("X-Plex-Token", host.Token)
+		identityReq.Header.Set("Accept", "application/json")
+		identityResp, err := decodeJsonFromRequest[plexIdentityResponse](client, identityReq)
+		if err == nil {
+			machineID = identityResp.MediaContainer.MachineIdentifier
+		} else {
+			slog.Warn("failed to fetch plex machine identifier", "error", err)
+		}
+	}
+
 	// Fetch sections
 	sectionsURL := fmt.Sprintf("%s/library/sections", baseURL)
 	req, err := http.NewRequestWithContext(ctx, "GET", sectionsURL, nil)
@@ -269,8 +292,8 @@ func (widget *latestMediaWidget) fetchPlexLatest(ctx context.Context, host *late
 	var items []latestMediaItem
 
 	for _, section := range sectionsResp.MediaContainer.Directory {
-		// Skip Plex music libraries so latest-media only shows video library additions.
-		if strings.EqualFold(section.Type, "artist") {
+		// Skip non-video Plex libraries so latest-media only shows video additions.
+		if strings.EqualFold(section.Type, "artist") || strings.EqualFold(section.Type, "photo") {
 			continue
 		}
 
@@ -296,6 +319,11 @@ func (widget *latestMediaWidget) fetchPlexLatest(ctx context.Context, host *late
 		}
 
 		for _, meta := range resp.MediaContainer.Metadata {
+			// Hard filter out Plex photo items, regardless of library filtering config.
+			if strings.EqualFold(meta.Type, "photo") || strings.EqualFold(meta.Type, "photoalbum") {
+				continue
+			}
+
 			item := latestMediaItem{
 				ServerType: "plex",
 				ServerURL:  host.BaseURL,
@@ -321,13 +349,18 @@ func (widget *latestMediaWidget) fetchPlexLatest(ctx context.Context, host *late
 				}
 			}
 			if thumbPath != "" {
-				item.ThumbnailURL = fmt.Sprintf("%s%s?X-Plex-Token=%s", baseURL, thumbPath, host.Token)
+				item.CoverURL = fmt.Sprintf("%s%s?X-Plex-Token=%s", baseURL, thumbPath, host.Token)
 			}
 			if artPath != "" {
-				item.CoverURL = fmt.Sprintf("%s%s?X-Plex-Token=%s", baseURL, artPath, host.Token)
+				item.ThumbnailURL = fmt.Sprintf("%s%s?X-Plex-Token=%s", baseURL, artPath, host.Token)
 			}
 
-			item.LinkURL = fmt.Sprintf("%s/web/index.html#!/server", host.PublicBaseURL)
+			if machineID != "" && meta.Key != "" {
+				item.LinkURL = fmt.Sprintf("%s/web/index.html#!/server/%s/details?key=%s",
+					host.PublicBaseURL, machineID, url.QueryEscape(meta.Key))
+			} else {
+				item.LinkURL = fmt.Sprintf("%s/web/index.html#!/server", host.PublicBaseURL)
+			}
 
 			items = append(items, item)
 		}

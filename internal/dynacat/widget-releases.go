@@ -19,6 +19,7 @@ var releasesWidgetTemplate = mustParseTemplate("releases.html", "widget-base.htm
 
 type releasesWidget struct {
 	widgetBase     `yaml:",inline"`
+	Frameless      bool              `yaml:"frameless"`
 	Releases       appReleaseList    `yaml:"-"`
 	Repositories   []*releaseRequest `yaml:"repositories"`
 	Token          string            `yaml:"token"`
@@ -234,7 +235,7 @@ func fetchLatestGithubRelease(request *releaseRequest) (*appRelease, error) {
 	if !request.IncludePreleases {
 		requestURL = fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", request.Repository)
 	} else {
-		requestURL = fmt.Sprintf("https://api.github.com/repos/%s/releases", request.Repository)
+		requestURL = fmt.Sprintf("https://api.github.com/repos/%s/releases?per_page=1", request.Repository)
 	}
 
 	httpRequest, err := http.NewRequest("GET", requestURL, nil)
