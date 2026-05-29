@@ -66,7 +66,7 @@ Alternatively, you can load the contents of a file who's path is provided by an 
 ```yaml
 services:
   dynacat:
-    image: Panonim/dynacat
+    image: panonim/dynacat
     environment:
       - TOKEN_FILE=/home/user/token
     volumes:
@@ -1360,7 +1360,7 @@ Display the status of your Docker containers along with an icon and an optional 
 > ```yaml
 > services:
 >   dynacat:
->     image: Panonim/dynacat
+>     image: panonim/dynacat
 >     volumes:
 >       - /var/run/docker.sock:/var/run/docker.sock
 > ```
@@ -1541,7 +1541,7 @@ Example:
 > ```yaml
 > services:
 >   dynacat:
->     image: Panonim/dynacat
+>     image: panonim/dynacat
 >     volumes:
 >       - /var/run/docker.sock:/var/run/docker.sock
 > ```
@@ -2257,7 +2257,7 @@ You can also specify the value for this token through an ENV variable using the 
 ```yaml
 services:
   dynacat:
-    image: Panonim/dynacat
+    image: panonim/dynacat
     environment:
       - GITHUB_TOKEN=<your token>
 ```
@@ -2811,7 +2811,7 @@ Just like the `group` widget, you can insert any widget type, you can even inser
 
 ### Stopwatch
 
-A browser-based stopwatch widget. 
+A browser-based stopwatch widget.
 
 Example:
 
