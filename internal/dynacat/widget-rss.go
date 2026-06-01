@@ -245,7 +245,12 @@ func (widget *rssWidget) fetchItemsFromFeedTask(request rssFeedRequest) ([]rssFe
 		req.Header.Set(key, value)
 	}
 
-	resp, err := defaultHTTPClient.Do(req)
+	client := defaultHTTPClient
+	if isRedditHost(req.URL.Host) {
+		client = redditHTTPClient
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
