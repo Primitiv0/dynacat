@@ -2470,6 +2470,7 @@ Preview:
 | target | string | no | _blank |
 | placeholder | string | no | Type here to search… |
 | autocomplete | boolean | no | true |
+| autocomplete-provider | string | no | duckduckgo |
 | bangs | array | no | |
 
 ##### `search-engine`
@@ -2499,6 +2500,14 @@ When set, modifies the text displayed in the input field before typing.
 
 ##### `autocomplete`
 When set to `true` (default), displays search suggestions as you type. Navigate suggestions with <kbd>↑</kbd> and <kbd>↓</kbd> arrow keys, select with <kbd>Enter</kbd>, or dismiss with <kbd>Escape</kbd>. Set to `false` to disable autocompletion.
+
+##### `autocomplete-provider`
+The provider used for search suggestions. Possible values are `duckduckgo` (default) and `brave`.
+
+| Value | Provider |
+| ----- | -------- |
+| duckduckgo | DuckDuckGo autocomplete |
+| brave | Brave Search autocomplete |
 
 ##### `bangs`
 What now? [Bangs](https://duckduckgo.com/bangs). They're shortcuts that allow you to use the same search box for many different sites. Assuming you have it configured, if for example you start your search input with `!yt` you'd be able to perform a search on YouTube:

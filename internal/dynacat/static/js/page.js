@@ -337,7 +337,7 @@ function setupSearchBoxes() {
             });
         }
 
-        // DDG Autocomplete
+        // Search Autocomplete
         if (widget.dataset.autocomplete === "true") {
             const autocompleteEl = widget.querySelector(".search-autocomplete");
             let acItems = [];
@@ -452,7 +452,8 @@ function setupSearchBoxes() {
                     hideAC();
                     return;
                 }
-                fetch("/api/search/autocomplete?q=" + encodeURIComponent(query))
+                const provider = widget.dataset.autocompleteProvider || "duckduckgo";
+                fetch("/api/search/autocomplete?q=" + encodeURIComponent(query) + "&provider=" + encodeURIComponent(provider))
                     .then((r) => r.json())
                     .then((data) => {
                         if (inputElement.value.trim() !== query) return;

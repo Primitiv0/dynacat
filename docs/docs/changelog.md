@@ -1,3 +1,6 @@
+# Changes for 2.X.X
+- Added Brave Search as an autocompletion engine and normal one
+
 # Changes for 2.3.1
 - Added support for loading environment variables from a file via `--env-file`
 - Made initial loading faster by fetching data on service start
