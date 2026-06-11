@@ -86,6 +86,8 @@ func newWidget(widgetType string) (widget, error) {
 		w = &dockerControllerWidget{}
 	case "server-stats":
 		w = &serverStatsWidget{}
+	case "speedtest":
+		w = &speedtestWidget{}
 	case "to-do":
 		w = &todoWidget{}
 	case "playing":

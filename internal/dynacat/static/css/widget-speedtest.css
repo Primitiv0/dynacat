@@ -1,0 +1,58 @@
+.speedtest-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.speedtest-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.speedtest-metric {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 0.6rem;
+}
+
+.speedtest-metric-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-right: auto;
+}
+
+.speedtest-icon {
+    width: 1.1em;
+    height: 1.1em;
+    flex-shrink: 0;
+}
+
+.speedtest-metric-value {
+    line-height: 1;
+}
+
+@container widget (min-width: 450px) {
+    .speedtest-metrics {
+        flex-direction: row;
+        justify-content: space-around;
+        gap: 2rem;
+    }
+
+    .speedtest-metric {
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.3rem;
+        max-width: 180px;
+    }
+
+    .speedtest-metric-label {
+        margin-right: 0;
+    }
+}

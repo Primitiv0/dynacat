@@ -2687,6 +2687,57 @@ The authentication token to use when fetching the statistics.
 ###### `timeout`
 The maximum time to wait for a response from the server. The value is a string and must be a number followed by one of s, m, h, d. Example: `10s` for 10 seconds, `1m` for 1 minute, etc
 
+### Speedtest
+Run a real internet speed test from the server and display the download, upload and ping. The test uses the [LibreSpeed](https://github.com/librespeed/speedtest-cli) protocol and, by default, automatically picks the nearest public LibreSpeed server. You can also point it at your own LibreSpeed instance.
+
+Preview:
+
+![](images/speedtest-widget-preview.png)
+
+Example:
+
+```yaml
+- type: speedtest
+```
+
+Using your own LibreSpeed server:
+
+```yaml
+- type: speedtest
+  server: https://librespeed.mydomain.com
+  update-interval: 6h
+```
+
+> [!CAUTION]
+>
+> This widget is still being tested, also note that:
+> When no `server` is configured the widget fetches the public LibreSpeed server list and runs the test against a community hosted server. Be considerate with how frequently you run tests against public servers.
+
+#### Properties
+
+| Name | Type | Required | Default |
+| ---- | ---- | -------- | ------- |
+| server | string | no |  |
+| duration | string | no | 15s |
+| concurrent | integer | no | 3 |
+| update-interval | string | no | 6h |
+| frameless | boolean | no | false |
+
+##### `server`
+The base URL of a LibreSpeed server to test against, for example `https://librespeed.mydomain.com`. When left empty, the widget automatically selects the lowest latency server from the public LibreSpeed server list.
+
+##### `duration`
+How long each direction (download and upload) is measured for. The value is a string and must be a number followed by one of s, m, h, d. Example: `15s` for 15 seconds.
+
+##### `concurrent`
+The number of concurrent connections used during the download and upload tests.
+
+##### `update-interval`
+How often a test is automatically run. The value is a string and must be a number followed by one of s, m or h. Default is `6h`.
+
+##### `frameless`
+When set to `true`, removes the border and padding around the widget.
+
 ### Split Column
 Splits a full sized column in half, allowing you to place widgets side by side horizontally. This is converted to a single column on mobile devices or if not enough width is available. Widgets are defined using a `widgets` property exactly as you would on a page column.
 
