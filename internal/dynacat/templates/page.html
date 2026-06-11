@@ -10,7 +10,7 @@
 {{ define "navigation-links" }}
 {{ range .AccessiblePages }}
 {{ if not .HideFromNavigation }}
-<a href="{{ $.App.Config.Server.BaseURL }}/{{ .Slug }}" class="nav-item{{ if eq .Slug $.Page.Slug }} nav-item-current{{ end }}"{{ if eq .Slug $.Page.Slug }} aria-current="page"{{ end }}{{ if .KeyBind }} data-key-bind="{{ .KeyBind }}"{{ end }}>{{ if ne "" .NameIcon.URL }}{{ if .NameIcon.AutoInvert }}<span class="nav-item-icon nav-item-icon-mask" style="--nav-item-icon-url: url('{{ .NameIcon.URL }}')"></span>{{ else }}<img class="nav-item-icon" src="{{ .NameIcon.URL }}" alt="" loading="lazy">{{ end }}{{ end }}{{ .Title }}{{ if .KeyBind }}<span class="nav-keybind-hint">{{ .KeyBind }}</span>{{ end }}</a>
+<a href="{{ $.App.Config.Server.BaseURL }}/{{ .Slug }}" class="nav-item{{ if eq .Slug $.Page.Slug }} nav-item-current{{ end }}"{{ if eq .Slug $.Page.Slug }} aria-current="page"{{ end }}{{ if .KeyBind }} data-key-bind="{{ .KeyBind }}"{{ end }}>{{ if ne "" .NameIcon.URL }}{{ if .NameIcon.AutoInvert }}<span class="nav-item-icon nav-item-icon-mask" style="--nav-item-icon-url: url('{{ .NameIcon.URL }}')"></span>{{ else }}<img class="nav-item-icon" src="{{ .NameIcon.URL }}" alt="">{{ end }}{{ end }}{{ .Title }}{{ if .KeyBind }}<span class="nav-keybind-hint">{{ .KeyBind }}</span>{{ end }}</a>
 {{ end }}
 {{ end }}
 {{ end }}
