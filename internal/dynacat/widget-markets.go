@@ -134,6 +134,7 @@ type marketResponseJson struct {
 				Currency           string  `json:"currency"`
 				Symbol             string  `json:"symbol"`
 				RegularMarketPrice float64 `json:"regularMarketPrice"`
+				PreviousClose      float64 `json:"previousClose"`
 				ChartPreviousClose float64 `json:"chartPreviousClose"`
 				ShortName          string  `json:"shortName"`
 				PriceHint          int     `json:"priceHint"`
@@ -195,8 +196,15 @@ func fetchMarketsDataFromYahoo(marketRequests []marketRequest, client *http.Clie
 			previous = result.Meta.RegularMarketPrice
 		}
 
-		if len(prices) >= 2 && prices[len(prices)-2] != 0 {
-			previous = prices[len(prices)-2]
+		if result.Meta.PreviousClose != 0 {
+			previous = result.Meta.PreviousClose
+		} else {
+			for i := len(prices) - 2; i >= 0; i-- {
+				if prices[i] != 0 {
+					previous = prices[i]
+					break
+				}
+			}
 		}
 
 		points := svgPolylineCoordsFromYValues(100, 50, maybeCopySliceWithoutZeroValues(prices))
