@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -47,7 +47,7 @@ func initOIDCProvider(cfg *oidcConfig) (*gooidc.Provider, *gooidc.IDTokenVerifie
 func (a *application) handleOIDCLogin(w http.ResponseWriter, r *http.Request) {
 	state, err := makeAuthSecretKey(16)
 	if err != nil {
-		log.Printf("OIDC: could not generate state: %v", err)
+		slog.Error("OIDC could not generate state", "error", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -131,7 +131,7 @@ func (a *application) handleOIDCCallback(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	oauth2Token, err := a.oauth2Config.Exchange(ctx, code, oauth2.VerifierOption(pkceCookie.Value))
 	if err != nil {
-		log.Printf("OIDC: token exchange failed: %v", err)
+		slog.Error("OIDC token exchange failed", "error", err)
 		http.Redirect(w, r, baseURL+"/login?error=token_exchange", http.StatusSeeOther)
 		return
 	}
@@ -145,7 +145,7 @@ func (a *application) handleOIDCCallback(w http.ResponseWriter, r *http.Request)
 
 	idToken, err := a.oidcVerifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		log.Printf("OIDC: ID token verification failed: %v", err)
+		slog.Error("OIDC ID token verification failed", "error", err)
 		http.Redirect(w, r, baseURL+"/login?error=token_verify", http.StatusSeeOther)
 		return
 	}
@@ -153,7 +153,7 @@ func (a *application) handleOIDCCallback(w http.ResponseWriter, r *http.Request)
 	// Extract claims
 	var claims map[string]interface{}
 	if err := idToken.Claims(&claims); err != nil {
-		log.Printf("OIDC: could not extract claims: %v", err)
+		slog.Error("OIDC could not extract claims", "error", err)
 		http.Redirect(w, r, baseURL+"/login?error=claims", http.StatusSeeOther)
 		return
 	}
@@ -201,7 +201,7 @@ func (a *application) handleOIDCCallback(w http.ResponseWriter, r *http.Request)
 			}
 		}
 		if !allowed {
-			log.Printf("OIDC: user %s not in allowed users/groups", username)
+			slog.Warn("OIDC user not in allowed users/groups", "username", username)
 			http.Redirect(w, r, baseURL+"/login?error=not_allowed", http.StatusSeeOther)
 			return
 		}
@@ -210,7 +210,7 @@ func (a *application) handleOIDCCallback(w http.ResponseWriter, r *http.Request)
 	// Generate session ID and store session
 	sessionID, err := makeAuthSecretKey(32)
 	if err != nil {
-		log.Printf("OIDC: could not generate session ID: %v", err)
+		slog.Error("OIDC could not generate session ID", "error", err)
 		http.Redirect(w, r, baseURL+"/login?error=internal", http.StatusSeeOther)
 		return
 	}
@@ -232,7 +232,7 @@ func (a *application) handleOIDCCallback(w http.ResponseWriter, r *http.Request)
 		HttpOnly: true,
 	})
 
-	log.Printf("OIDC: user %s logged in", username)
+	slog.Info("OIDC user logged in", "username", username)
 	http.Redirect(w, r, baseURL+"/", http.StatusSeeOther)
 }
 
@@ -273,4 +273,3 @@ func extractGroupsClaim(claims map[string]interface{}, claimName string) []strin
 
 	return nil
 }
-

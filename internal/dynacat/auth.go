@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	mathrand "math/rand/v2"
 	"net/http"
 	"strconv"
@@ -202,10 +202,7 @@ func (a *application) handleAuthenticationAttempt(w http.ResponseWriter, r *http
 	}
 
 	logAuthFailure := func() {
-		log.Printf(
-			"Failed login attempt for user '%s' from %s",
-			creds.Username, ip,
-		)
+		slog.Warn("Failed login attempt", "username", creds.Username, "ip", ip)
 	}
 
 	if len(creds.Username) == 0 || len(creds.Password) == 0 {
@@ -238,7 +235,7 @@ func (a *application) handleAuthenticationAttempt(w http.ResponseWriter, r *http
 
 	token, err := generateSessionToken(creds.Username, a.authSecretKey, time.Now())
 	if err != nil {
-		log.Printf("Could not compute session token during login attempt: %v", err)
+		slog.Error("Could not compute session token during login attempt", "error", err)
 		time.Sleep(waitOnFailure)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -266,7 +263,7 @@ func (a *application) getAuthenticatedUser(w http.ResponseWriter, r *http.Reques
 						if shouldRegenerate {
 							newToken, err := generateSessionToken(username, a.authSecretKey, time.Now())
 							if err != nil {
-								log.Printf("Could not compute session token during regeneration: %v", err)
+								slog.Error("Could not compute session token during regeneration", "error", err)
 							} else {
 								a.setAuthSessionCookie(w, r, newToken, time.Now().Add(AUTH_TOKEN_VALID_PERIOD))
 							}
@@ -460,7 +457,7 @@ func (a *application) handleLoginPageRequest(w http.ResponseWriter, r *http.Requ
 	var responseBytes bytes.Buffer
 	err := loginPageTemplate.Execute(&responseBytes, data)
 	if err != nil {
-		log.Printf("rendering login page: %v", err)
+		slog.Error("Rendering login page failed", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("internal server error"))
 		return

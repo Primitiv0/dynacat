@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -592,7 +592,7 @@ func (a *application) handlePageRequest(w http.ResponseWriter, r *http.Request) 
 	var responseBytes bytes.Buffer
 	err := pageTemplate.Execute(&responseBytes, data)
 	if err != nil {
-		log.Printf("rendering page template: %v", err)
+		slog.Error("Rendering page template failed", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("internal server error"))
 		return
@@ -637,7 +637,7 @@ func (a *application) handlePageContentRequest(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 
 	if err != nil {
-		log.Printf("rendering page content template: %v", err)
+		slog.Error("Rendering page content template failed", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("internal server error"))
 		return
@@ -810,7 +810,7 @@ func (a *application) handleTodoLoad(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := a.todoStorage.loadTasks(listID)
 	if err != nil {
-		log.Printf("todo load: %v", err)
+		slog.Error("Todo load failed", "list_id", listID, "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -839,7 +839,7 @@ func (a *application) handleTodoSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.todoStorage.saveTasks(listID, tasks); err != nil {
-		log.Printf("todo save: %v", err)
+		slog.Error("Todo save failed", "list_id", listID, "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -1002,12 +1002,7 @@ func (a *application) server() (func() error, func() error) {
 	}
 
 	start := func() error {
-		log.Printf("Starting server on %s:%d (base-url: \"%s\", assets-path: \"%s\")\n",
-			a.Config.Server.Host,
-			a.Config.Server.Port,
-			a.Config.Server.BaseURL,
-			absAssetsPath,
-		)
+		slog.Info("Starting server", "host", a.Config.Server.Host, "port", a.Config.Server.Port, "base_url", a.Config.Server.BaseURL, "assets_path", absAssetsPath)
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return err
