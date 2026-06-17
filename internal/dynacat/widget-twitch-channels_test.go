@@ -3,6 +3,7 @@ package dynacat
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -153,6 +154,48 @@ func TestCollectTwitchChannelBatchResultsPreservesPartialBatchResults(t *testing
 	}
 	if channels[0].Login != "one" || channels[1].Login != "three" || channels[2].Login != "four" {
 		t.Fatalf("Expected successful channels from both batches, got %#v", channels)
+	}
+}
+
+func TestTwitchChannelsWidgetCanLinkCategoryToStream(t *testing.T) {
+	widget := twitchChannelsWidget{
+		widgetBase: widgetBase{ContentAvailable: true},
+		Channels: []twitchChannel{{
+			Login:        "example",
+			Exists:       true,
+			Name:         "Example",
+			IsLive:       true,
+			Category:     "Science & Technology",
+			CategorySlug: "science-and-technology",
+		}},
+		LinkCategoryToStream: true,
+	}
+
+	html := string(widget.Render())
+	if !strings.Contains(html, `href="https://twitch.tv/example"`) {
+		t.Fatalf("Expected game name to link to stream, got %s", html)
+	}
+	if strings.Contains(html, `href="https://www.twitch.tv/directory/category/science-and-technology"`) {
+		t.Fatalf("Expected game category link to be absent, got %s", html)
+	}
+}
+
+func TestTwitchChannelsWidgetGameNameLinksToCategoryByDefault(t *testing.T) {
+	widget := twitchChannelsWidget{
+		widgetBase: widgetBase{ContentAvailable: true},
+		Channels: []twitchChannel{{
+			Login:        "example",
+			Exists:       true,
+			Name:         "Example",
+			IsLive:       true,
+			Category:     "Science & Technology",
+			CategorySlug: "science-and-technology",
+		}},
+	}
+
+	html := string(widget.Render())
+	if !strings.Contains(html, `href="https://www.twitch.tv/directory/category/science-and-technology"`) {
+		t.Fatalf("Expected game name to link to category, got %s", html)
 	}
 }
 
