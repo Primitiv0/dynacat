@@ -49,13 +49,11 @@
                         <div class="value-separator"></div>
                         <div class="color-highlight text-very-compact">{{ .Info.CPU.Load1Percent }} <span class="color-base size-h5">%</span></div>
                     </div>
-                    {{- if not .Compact }}
                     <div class="flex margin-top-3">
                         <div class="size-h5">15M AVG</div>
                         <div class="value-separator"></div>
                         <div class="color-highlight text-very-compact">{{ .Info.CPU.Load15Percent }} <span class="color-base size-h5">%</span></div>
                     </div>
-                    {{- end }}
                     {{- if .Info.CPU.TemperatureIsAvailable }}
                     <div class="flex margin-top-3">
                         <div class="size-h5">TEMP C</div>
@@ -90,7 +88,7 @@
                             {{ .Info.Memory.UsedMB | formatServerMegabytes }} <span class="color-base size-h5">/</span> {{ .Info.Memory.TotalMB | formatServerMegabytes }}
                         </div>
                     </div>
-                    {{- if and (not .Compact) (not .HideSwap) .Info.Memory.SwapIsAvailable }}
+                    {{- if and (not .HideSwap) .Info.Memory.SwapIsAvailable }}
                     <div class="flex margin-top-3">
                         <div class="size-h5">SWAP</div>
                         <div class="value-separator"></div>
