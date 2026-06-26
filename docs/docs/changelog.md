@@ -13,6 +13,7 @@
 - Added support for Sonarr/Radarr releases in the `calendar` widget 
 - Preserve auth redirect -> https://github.com/Panonim/dynacat/pull/120
 - Fixed an issue where combining subreddits would show incorrect title
+- Fixed an issue with theme syncing
 
 # Changes for 2.3.1
 - Added support for loading environment variables from a file via `--env-file`
