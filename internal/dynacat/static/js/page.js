@@ -1175,6 +1175,16 @@ function setupTruncatedElementTitles() {
     }
 }
 
+const THEME_STORAGE_KEY = "dynacat-theme";
+
+// Mirror the active theme to localStorage so reloads survive a lost cookie and
+// other tabs can pick the change up via the storage event.
+function persistTheme(key, css, scheme) {
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ key: key, css: css, scheme: scheme }));
+    } catch (e) {}
+}
+
 async function changeTheme(key, onChanged) {
     const themeStyleElem = find("#theme-style");
 
@@ -1187,6 +1197,7 @@ async function changeTheme(key, onChanged) {
         return;
     }
     const newThemeStyle = await response.text();
+    const scheme = response.headers.get("X-Scheme");
 
     const tempStyle = elem("style")
         .html("* { transition: none !important; }")
@@ -1194,7 +1205,8 @@ async function changeTheme(key, onChanged) {
 
     themeStyleElem.html(newThemeStyle);
     document.documentElement.setAttribute("data-theme", key);
-    document.documentElement.setAttribute("data-scheme", response.headers.get("X-Scheme"));
+    if (scheme) document.documentElement.setAttribute("data-scheme", scheme);
+    persistTheme(key, newThemeStyle, scheme);
     typeof onChanged == "function" && onChanged();
     setTimeout(() => { tempStyle.remove(); }, 10);
 }
@@ -1215,6 +1227,21 @@ function initThemePicker() {
     let themePreviewElems = document.getElementsByClassName("current-theme-preview");
     let isLoading = false;
 
+    function markCurrentPreset(themeKey) {
+        let matched = null;
+        presetElems.forEach((e) => {
+            e.classList.remove("current");
+            if (e.dataset.key == themeKey) matched = e;
+        });
+        if (!matched) return;
+
+        Array.from(themePreviewElems).forEach((preview) => {
+            const slot = preview.querySelector(".theme-preset");
+            if (slot) slot.replaceWith(matched.cloneNode(true));
+        });
+        matched.classList.add("current");
+    }
+
     presetElems.forEach((presetElement) => {
         const themeKey = presetElement.dataset.key;
 
@@ -1234,21 +1261,26 @@ function initThemePicker() {
             changeTheme(themeKey, function() {
                 isLoading = false;
                 pageData.theme = themeKey;
-                presetElems.forEach((e) => { e.classList.remove("current"); });
-
-                Array.from(themePreviewElems).forEach((preview) => {
-                    preview.querySelector(".theme-preset").replaceWith(
-                        presetElement.cloneNode(true)
-                    );
-                })
-
-                presetElems.forEach((e) => {
-                    if (e.dataset.key != themeKey) return;
-                    e.classList.add("current");
-                });
+                markCurrentPreset(themeKey);
             });
         });
     })
+
+    // Live sync when the theme is changed in another tab.
+    window.addEventListener("storage", (e) => {
+        if (e.key !== THEME_STORAGE_KEY || !e.newValue) return;
+
+        let stored;
+        try { stored = JSON.parse(e.newValue); } catch (err) { return; }
+        if (!stored || !stored.key || stored.key == pageData.theme) return;
+
+        const themeStyleElem = find("#theme-style");
+        if (themeStyleElem && typeof stored.css == "string") themeStyleElem.html(stored.css);
+        document.documentElement.setAttribute("data-theme", stored.key);
+        if (stored.scheme) document.documentElement.setAttribute("data-scheme", stored.scheme);
+        pageData.theme = stored.key;
+        markCurrentPreset(stored.key);
+    });
 }
 
 function initDesktopNavigationAutoshow() {
@@ -1304,6 +1336,12 @@ async function setupPage() {
     initDesktopNavigationAutoshow();
 
     initThemePicker();
+
+    // If the early restore swapped in a theme the server did not have a cookie
+    // for, re-POST it so the server cookie is rewritten and stays in sync.
+    if (pageData.serverTheme !== undefined && pageData.serverTheme !== pageData.theme) {
+        fetch(`${pageData.baseURL}/api/set-theme/${pageData.theme}`, { method: "POST" }).catch(() => {});
+    }
 
     const pageElement = document.getElementById("page");
     const pageContentElement = document.getElementById("page-content");
