@@ -1,4 +1,4 @@
-# Changes for 2.X.X
+# Changes for 2.4.0
 - Added Brave Search as an autocompletion engine and normal one
 - Added support for icons in the page title 
 - Fixed issue where todo widget highlight was too short
