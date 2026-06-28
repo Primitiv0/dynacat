@@ -13,12 +13,13 @@ import (
 var twitchChannelsWidgetTemplate = mustParseTemplate("twitch-channels.html", "widget-base.html")
 
 type twitchChannelsWidget struct {
-	widgetBase      `yaml:",inline"`
-	Frameless       bool            `yaml:"frameless"`
-	ChannelsRequest []string        `yaml:"channels"`
-	Channels        []twitchChannel `yaml:"-"`
-	CollapseAfter   int             `yaml:"collapse-after"`
-	SortBy          string          `yaml:"sort-by"`
+	widgetBase           `yaml:",inline"`
+	Frameless            bool            `yaml:"frameless"`
+	ChannelsRequest      []string        `yaml:"channels"`
+	Channels             []twitchChannel `yaml:"-"`
+	CollapseAfter        int             `yaml:"collapse-after"`
+	SortBy               string          `yaml:"sort-by"`
+	LinkCategoryToStream bool            `yaml:"link-category-to-stream"`
 }
 
 func (widget *twitchChannelsWidget) initialize() error {

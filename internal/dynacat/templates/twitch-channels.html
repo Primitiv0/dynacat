@@ -29,7 +29,7 @@
                 {{ if .Exists }}
                     {{ if .IsLive }}
                         {{ if .Category }}
-                            <a class="text-truncate block" href="https://www.twitch.tv/directory/category/{{ .CategorySlug }}" target="_blank" rel="noreferrer">{{ .Category }}</a>
+                            <a class="text-truncate block" href="{{ if $.LinkCategoryToStream }}https://twitch.tv/{{ .Login }}{{ else }}https://www.twitch.tv/directory/category/{{ .CategorySlug }}{{ end }}" target="_blank" rel="noreferrer">{{ .Category }}</a>
                         {{ end }}
                     <ul class="list-horizontal-text">
                         <li {{ dynamicRelativeTimeAttrs .LiveSince }}></li>
