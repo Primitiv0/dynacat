@@ -43,6 +43,19 @@
     margin-top: 0.5rem;
 }
 
+.server-compact {
+    gap: 0.6rem;
+}
+
+.server-compact .server-stats {
+    gap: 1rem;
+    margin-top: 0;
+}
+
+.server-compact .progress-bar-combined {
+    height: 1.5rem;
+}
+
 .server-stat-unavailable {
     opacity: 0.5;
 }
@@ -77,5 +90,15 @@
 
     .server-stats > * {
         max-width: 200px;
+    }
+
+    .server-compact {
+        gap: 1rem;
+    }
+
+    .server-compact .server-stats {
+        min-width: 320px;
+        gap: 1.2rem;
+        padding-bottom: 0;
     }
 }

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"math/rand/v2"
 	"net/http"
 	"regexp"
@@ -84,26 +83,32 @@ func setBrowserUserAgentHeader(request *http.Request) {
 	request.Header.Set("User-Agent", getBrowserUserAgentHeader())
 }
 
+// fetchRequestBody fetches a request body, sharing the result with other
+// widgets when the request is a cacheable GET, otherwise issuing it directly.
+func fetchRequestBody(client requestDoer, request *http.Request) (int, []byte, error) {
+	if request.Method == "" || request.Method == http.MethodGet {
+		status, _, body, err := globalSharedFetcher.do(client, request, sharedFetchMaxAgeForRequest(request))
+		return status, body, err
+	}
+
+	status, _, body, err := doRequestReadAll(client, request)
+	return status, body, err
+}
+
 func decodeJsonFromRequest[T any](client requestDoer, request *http.Request) (T, error) {
 	var result T
 
-	response, err := client.Do(request)
-	if err != nil {
-		return result, err
-	}
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
+	status, body, err := fetchRequestBody(client, request)
 	if err != nil {
 		return result, err
 	}
 
-	if response.StatusCode != http.StatusOK {
+	if status != http.StatusOK {
 		truncatedBody, _ := limitStringLength(string(body), 256)
 
 		return result, fmt.Errorf(
 			"unexpected status code %d from %s, response: %s",
-			response.StatusCode,
+			status,
 			request.URL,
 			truncatedBody,
 		)
@@ -123,27 +128,20 @@ func decodeJsonFromRequestTask[T any](client requestDoer) func(*http.Request) (T
 	}
 }
 
-// TODO: tidy up, these are a copy of the above but with a line changed
 func decodeXmlFromRequest[T any](client requestDoer, request *http.Request) (T, error) {
 	var result T
 
-	response, err := client.Do(request)
-	if err != nil {
-		return result, err
-	}
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
+	status, body, err := fetchRequestBody(client, request)
 	if err != nil {
 		return result, err
 	}
 
-	if response.StatusCode != http.StatusOK {
+	if status != http.StatusOK {
 		truncatedBody, _ := limitStringLength(string(body), 256)
 
 		return result, fmt.Errorf(
 			"unexpected status code %d for %s, response: %s",
-			response.StatusCode,
+			status,
 			request.URL,
 			truncatedBody,
 		)

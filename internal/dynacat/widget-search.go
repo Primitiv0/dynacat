@@ -16,17 +16,18 @@ type SearchBang struct {
 }
 
 type searchWidget struct {
-	widgetBase          `yaml:",inline"`
-	cachedHTML          template.HTML `yaml:"-"`
-	Frameless           bool          `yaml:"frameless"`
-	SearchEngine        string        `yaml:"search-engine"`
-	Bangs               []SearchBang  `yaml:"bangs"`
-	NewTab              bool          `yaml:"new-tab"`
-	Target              string        `yaml:"target"`
-	Autofocus           bool          `yaml:"autofocus"`
-	Placeholder         string        `yaml:"placeholder"`
-	AutocompleteEnabled *bool         `yaml:"autocomplete"`
-	Autocomplete        bool          `yaml:"-"`
+	widgetBase            `yaml:",inline"`
+	cachedHTML            template.HTML `yaml:"-"`
+	Frameless             bool          `yaml:"frameless"`
+	SearchEngine          string        `yaml:"search-engine"`
+	Bangs                 []SearchBang  `yaml:"bangs"`
+	NewTab                bool          `yaml:"new-tab"`
+	Target                string        `yaml:"target"`
+	Autofocus             bool          `yaml:"autofocus"`
+	Placeholder           string        `yaml:"placeholder"`
+	AutocompleteEnabled   *bool         `yaml:"autocomplete"`
+	Autocomplete          bool          `yaml:"-"`
+	AutocompleteProvider  string        `yaml:"autocomplete-provider"`
 }
 
 func convertSearchUrl(url string) string {
@@ -40,8 +41,10 @@ var searchEngines = map[string]string{
 	"google":     "https://www.google.com/search?q={QUERY}",
 	"bing":       "https://www.bing.com/search?q={QUERY}",
 	"perplexity": "https://www.perplexity.ai/search?q={QUERY}",
-	"kagi": "https://kagi.com/search?q={QUERY}",
-	"startpage": "https://www.startpage.com/search?q={QUERY}",
+	"kagi":       "https://kagi.com/search?q={QUERY}",
+	"startpage":  "https://www.startpage.com/search?q={QUERY}",
+	"qwant":      "https://www.qwant.com/?q={QUERY}&t=web",
+	"brave":      "https://search.brave.com/search?q={QUERY}",
 }
 
 func (widget *searchWidget) initialize() error {
@@ -60,6 +63,12 @@ func (widget *searchWidget) initialize() error {
 		widget.Autocomplete = true
 	} else {
 		widget.Autocomplete = *widget.AutocompleteEnabled
+	}
+
+	if widget.AutocompleteProvider == "" {
+		widget.AutocompleteProvider = "duckduckgo"
+	} else if widget.AutocompleteProvider != "duckduckgo" && widget.AutocompleteProvider != "brave" {
+		return fmt.Errorf("unknown autocomplete-provider %q", widget.AutocompleteProvider)
 	}
 
 	if url, ok := searchEngines[widget.SearchEngine]; ok {

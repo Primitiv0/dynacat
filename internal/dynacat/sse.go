@@ -139,6 +139,53 @@ func (a *application) handleSearchAutocompleteRequest(w http.ResponseWriter, r *
 		return
 	}
 
+	provider := r.URL.Query().Get("provider")
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if provider == "brave" {
+		braveURL := "https://search.brave.com/api/suggest?" + url.Values{"q": {query}, "rich": {"false"}}.Encode()
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, braveURL, nil)
+		if err != nil {
+			http.Error(w, "Failed to create request", http.StatusInternalServerError)
+			return
+		}
+		setBrowserUserAgentHeader(req)
+
+		resp, err := defaultHTTPClient.Do(req)
+		if err != nil {
+			http.Error(w, "Failed to fetch suggestions", http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		// Brave returns OpenSearch format: ["query", ["s1", "s2", ...]]
+		var raw []json.RawMessage
+		if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil || len(raw) < 2 {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("[]"))
+			return
+		}
+
+		var suggestions []string
+		if err := json.Unmarshal(raw[1], &suggestions); err != nil {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("[]"))
+			return
+		}
+
+		type phrase struct {
+			Phrase string `json:"phrase"`
+		}
+		result := make([]phrase, len(suggestions))
+		for i, s := range suggestions {
+			result[i] = phrase{Phrase: s}
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
 	ddgURL := "https://duckduckgo.com/ac/?" + url.Values{"q": {query}}.Encode()
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, ddgURL, nil)
 	if err != nil {
@@ -154,7 +201,6 @@ func (a *application) handleSearchAutocompleteRequest(w http.ResponseWriter, r *
 	}
 	defer resp.Body.Close()
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	io.Copy(w, resp.Body)
 }
@@ -282,7 +328,7 @@ func (a *application) sseCheckAndPushUpdates(ctx context.Context) {
 				return
 			}
 
-			w.update(ctx)
+			w.update(withSharedFetchMaxAge(ctx, w.getCacheDuration()))
 			html := string(w.Render())
 
 			type payload struct {

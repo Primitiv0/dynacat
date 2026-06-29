@@ -235,9 +235,20 @@ func dynawidgetsResolveTemplate(slug string, repo string) (templateContent strin
 	}
 
 	// Fetch the template content
-	parsedTemplateURL, err := url.Parse(entry.Template)
+	templateURL := entry.Template
+	if repo != dynawidgetsDefaultRepo {
+		// entry.Template points to the default branch; rewrite to the requested repo
+		templateURL = strings.Replace(
+			entry.Template,
+			"/refs/heads/"+dynawidgetsDefaultRepo+"/",
+			"/refs/heads/"+repo+"/",
+			1,
+		)
+	}
+
+	parsedTemplateURL, err := url.Parse(templateURL)
 	if err != nil {
-		return "", "", nil, fmt.Errorf("invalid template URL %q: %w", entry.Template, err)
+		return "", "", nil, fmt.Errorf("invalid template URL %q: %w", templateURL, err)
 	}
 	if parsedTemplateURL.Scheme != "https" || parsedTemplateURL.Host != dynawidgetsTemplateHost {
 		return "", "", nil, fmt.Errorf(
@@ -246,9 +257,9 @@ func dynawidgetsResolveTemplate(slug string, repo string) (templateContent strin
 		)
 	}
 
-	slog.Info("Fetching dynawidget template", "slug", slug, "url", entry.Template)
+	slog.Info("Fetching dynawidget template", "slug", slug, "url", templateURL)
 
-	templateResp, err := defaultHTTPClient.Get(entry.Template)
+	templateResp, err := defaultHTTPClient.Get(templateURL)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("fetching template: %w", err)
 	}

@@ -97,6 +97,7 @@ type serverStatsRequest struct {
 	IsReachable                bool                `yaml:"-"`
 	StatusText                 string              `yaml:"-"`
 	Name                       string              `yaml:"name"`
+	Compact                    bool                `yaml:"compact"`
 	HideSwap                   bool                `yaml:"hide-swap"`
 	Type                       string              `yaml:"type"`
 	URL                        string              `yaml:"url"`

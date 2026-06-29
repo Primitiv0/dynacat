@@ -4,7 +4,8 @@
 
 {{- define "widget-content" }}
 {{- range .Servers }}
-<div class="server">
+<div class="server{{ if .Compact }} server-compact{{ end }}">
+    {{- if not .Compact }}
     <div class="server-info">
         <div class="server-details">
             <div class="server-name color-highlight size-h3">{{ if .Name }}{{ .Name }}{{ else }}{{ .Info.Hostname }}{{ end }}</div>
@@ -28,6 +29,7 @@
             </svg>
         </div>
     </div>
+    {{- end }}
     <div class="server-stats">
         <div class="flex-1{{ if not .Info.CPU.LoadIsAvailable }} server-stat-unavailable{{ end }}">
             <div class="flex items-end size-h5">
@@ -64,7 +66,9 @@
                 <div class="progress-bar progress-bar-combined">
                     {{- if .Info.CPU.LoadIsAvailable }}
                     <div class="progress-value{{ if ge .Info.CPU.Load1Percent 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Info.CPU.Load1Percent }}"></div>
+                    {{- if not .Compact }}
                     <div class="progress-value{{ if ge .Info.CPU.Load15Percent 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Info.CPU.Load15Percent }}"></div>
+                    {{- end }}
                     {{- end }}
                 </div>
             </div>
@@ -98,7 +102,7 @@
                 <div class="progress-bar progress-bar-combined">
                     {{- if .Info.Memory.IsAvailable }}
                     <div class="progress-value{{ if ge .Info.Memory.UsedPercent 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Info.Memory.UsedPercent }}"></div>
-                    {{- if and (not .HideSwap) .Info.Memory.SwapIsAvailable }}
+                    {{- if and (not .Compact) (not .HideSwap) .Info.Memory.SwapIsAvailable }}
                     <div class="progress-value{{ if ge .Info.Memory.SwapUsedPercent 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Info.Memory.SwapUsedPercent }}"></div>
                     {{- end }}
                     {{- end }}

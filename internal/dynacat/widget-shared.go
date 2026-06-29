@@ -10,6 +10,7 @@ var forumPostsTemplate = mustParseTemplate("forum-posts.html", "widget-base.html
 
 type forumPost struct {
 	Title           string
+	Subreddit       string
 	DiscussionUrl   string
 	TargetUrl       string
 	TargetUrlDomain string

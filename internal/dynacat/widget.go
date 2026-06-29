@@ -86,6 +86,8 @@ func newWidget(widgetType string) (widget, error) {
 		w = &dockerControllerWidget{}
 	case "server-stats":
 		w = &serverStatsWidget{}
+	case "speedtest":
+		w = &speedtestWidget{}
 	case "to-do":
 		w = &todoWidget{}
 	case "playing":
@@ -144,6 +146,7 @@ type widget interface {
 
 	initialize() error
 	requiresUpdate(*time.Time) bool
+	getCacheDuration() time.Duration
 	setProviders(*widgetProviders)
 	update(context.Context)
 	setID(uint64)
@@ -244,12 +247,40 @@ func (w *widgetBase) IsWIP() bool {
 	return w.WIP
 }
 
+// UpdateIntervalMs is the polling interval the page uses for this widget, in
+// milliseconds. Widgets can override it to poll dynamically (e.g. faster while a
+// background job runs, then back to the configured interval once it finishes).
+func (w *widgetBase) UpdateIntervalMs() int64 {
+	if w.UpdateInterval == nil {
+		return 0
+	}
+	return w.UpdateInterval.Milliseconds()
+}
+
 func (w *widgetBase) IsLazyLoad() bool {
 	return w.LazyLoad && !w.ContentAvailable
 }
 
 func (w *widgetBase) update(ctx context.Context) {
 
+}
+
+// getCacheDuration returns the effective time between updates for this widget,
+// used as the reuse window for shared HTTP requests. Returns -1 for infinite
+// cache widgets so they reuse shared responses freely.
+func (w *widgetBase) getCacheDuration() time.Duration {
+	switch w.cacheType {
+	case cacheTypeDuration:
+		if w.CustomCacheDuration == 0 && w.UpdateInterval != nil && *w.UpdateInterval > 0 {
+			return time.Duration(*w.UpdateInterval)
+		}
+		return w.cacheDuration
+	case cacheTypeOnTheHour:
+		now := time.Now()
+		return time.Duration(((60-now.Minute())*60)-now.Second()) * time.Second
+	default:
+		return -1
+	}
 }
 
 func (w *widgetBase) GetID() uint64 {

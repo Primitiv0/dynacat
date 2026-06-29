@@ -4,10 +4,6 @@
 
 {{ define "widget-content" }}
 <style>
-    .latest-media-grid {
-        --cards-per-row: {{ .EffectiveColumns }};
-    }
-
     @container widget (max-width: 900px) {
         .latest-media-grid { --cards-per-row: 4; }
     }
@@ -133,7 +129,7 @@
 {{ if not .Items }}
     <div class="latest-media-empty">No recently added items.</div>
 {{ else }}
-    <div class="latest-media-grid cards-grid collapsible-container" data-collapse-after-rows="1">
+    <div class="latest-media-grid cards-grid collapsible-container" data-collapse-after-rows="1" style="--cards-per-row: {{ .EffectiveColumns }}">
         {{ range .Items }}
         <a class="latest-media-card" {{ if .LinkURL }}href="{{ .LinkURL }}" target="_blank" rel="noreferrer"{{ end }}>
 

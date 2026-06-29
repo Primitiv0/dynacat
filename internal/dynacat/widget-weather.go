@@ -64,7 +64,7 @@ func (widget *weatherWidget) initialize() error {
 
 func (widget *weatherWidget) update(ctx context.Context) {
 	if widget.Place == nil {
-		place, err := fetchOpenMeteoPlaceFromName(widget.Location)
+		place, err := fetchOpenMeteoPlaceFromName(ctx, widget.Location)
 		if err != nil {
 			widget.withError(err).scheduleEarlyUpdate()
 			return
@@ -73,7 +73,7 @@ func (widget *weatherWidget) update(ctx context.Context) {
 		widget.Place = place
 	}
 
-	weather, err := fetchWeatherForOpenMeteoPlace(widget.Place, widget.Units)
+	weather, err := fetchWeatherForOpenMeteoPlace(ctx, widget.Place, widget.Units)
 
 	if !widget.canContinueUpdateAfterHandlingErr(err) {
 		return
@@ -174,10 +174,10 @@ func parsePlaceName(name string) (string, string) {
 	return parts[0] + ", " + expandCountryAbbreviations(parts[2]), strings.TrimSpace(parts[1])
 }
 
-func fetchOpenMeteoPlaceFromName(location string) (*openMeteoPlaceResponseJson, error) {
+func fetchOpenMeteoPlaceFromName(ctx context.Context, location string) (*openMeteoPlaceResponseJson, error) {
 	location, area := parsePlaceName(location)
 	requestUrl := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s&count=20&language=en&format=json", url.QueryEscape(location))
-	request, _ := http.NewRequest("GET", requestUrl, nil)
+	request, _ := http.NewRequestWithContext(ctx, "GET", requestUrl, nil)
 	responseJson, err := decodeJsonFromRequest[openMeteoPlacesResponseJson](defaultHTTPClient, request)
 	if err != nil {
 		return nil, fmt.Errorf("fetching places data: %v", err)
@@ -216,7 +216,7 @@ func fetchOpenMeteoPlaceFromName(location string) (*openMeteoPlaceResponseJson, 
 	return place, nil
 }
 
-func fetchWeatherForOpenMeteoPlace(place *openMeteoPlaceResponseJson, units string) (*weather, error) {
+func fetchWeatherForOpenMeteoPlace(ctx context.Context, place *openMeteoPlaceResponseJson, units string) (*weather, error) {
 	query := url.Values{}
 	var temperatureUnit string
 
@@ -237,7 +237,7 @@ func fetchWeatherForOpenMeteoPlace(place *openMeteoPlaceResponseJson, units stri
 	query.Add("temperature_unit", temperatureUnit)
 
 	requestUrl := "https://api.open-meteo.com/v1/forecast?" + query.Encode()
-	request, _ := http.NewRequest("GET", requestUrl, nil)
+	request, _ := http.NewRequestWithContext(ctx, "GET", requestUrl, nil)
 	responseJson, err := decodeJsonFromRequest[openMeteoWeatherResponseJson](defaultHTTPClient, request)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errNoContent, err)

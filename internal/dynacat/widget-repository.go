@@ -48,6 +48,7 @@ func (widget *repositoryWidget) initialize() error {
 
 func (widget *repositoryWidget) update(ctx context.Context) {
 	details, err := fetchRepositoryDetailsFromGithub(
+		ctx,
 		widget.RequestedRepository,
 		string(widget.Token),
 		widget.PullRequestsLimit,
@@ -117,15 +118,15 @@ type gitHubCommitResponseJson struct {
 	} `json:"commit"`
 }
 
-func fetchRepositoryDetailsFromGithub(repo string, token string, maxPRs int, maxIssues int, maxCommits int) (repository, error) {
-	repositoryRequest, err := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s", repo), nil)
+func fetchRepositoryDetailsFromGithub(ctx context.Context, repo string, token string, maxPRs int, maxIssues int, maxCommits int) (repository, error) {
+	repositoryRequest, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("https://api.github.com/repos/%s", repo), nil)
 	if err != nil {
 		return repository{}, fmt.Errorf("%w: could not create request with repository: %v", errNoContent, err)
 	}
 
-	PRsRequest, _ := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/search/issues?q=is:pr+is:open+repo:%s&per_page=%d", repo, maxPRs), nil)
-	issuesRequest, _ := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/search/issues?q=is:issue+is:open+repo:%s&per_page=%d", repo, maxIssues), nil)
-	CommitsRequest, _ := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/commits?per_page=%d", repo, maxCommits), nil)
+	PRsRequest, _ := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("https://api.github.com/search/issues?q=is:pr+is:open+repo:%s&per_page=%d", repo, maxPRs), nil)
+	issuesRequest, _ := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("https://api.github.com/search/issues?q=is:issue+is:open+repo:%s&per_page=%d", repo, maxIssues), nil)
+	CommitsRequest, _ := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("https://api.github.com/repos/%s/commits?per_page=%d", repo, maxCommits), nil)
 
 	if token != "" {
 		token = fmt.Sprintf("Bearer %s", token)

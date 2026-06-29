@@ -75,7 +75,7 @@ func (widget *videosWidget) update(ctx context.Context) {
 		widget.videoCache = make(map[string]videoList)
 	}
 
-	videos, err := fetchYoutubeChannelUploads(widget.Channels, widget.VideoUrlTemplate, widget.IncludeShorts, widget.videoCache)
+	videos, err := fetchYoutubeChannelUploads(ctx, widget.Channels, widget.VideoUrlTemplate, widget.IncludeShorts, widget.videoCache)
 
 	if !widget.canContinueUpdateAfterHandlingErr(err) {
 		return
@@ -158,7 +158,7 @@ func (v videoList) sortByNewest() videoList {
 	return v
 }
 
-func fetchYoutubeChannelUploads(channelOrPlaylistIDs []string, videoUrlTemplate string, includeShorts bool, cache map[string]videoList) (videoList, error) {
+func fetchYoutubeChannelUploads(ctx context.Context, channelOrPlaylistIDs []string, videoUrlTemplate string, includeShorts bool, cache map[string]videoList) (videoList, error) {
 	requests := make([]*http.Request, 0, len(channelOrPlaylistIDs))
 	uulfIndices := make([]int, 0)
 
@@ -175,7 +175,7 @@ func fetchYoutubeChannelUploads(channelOrPlaylistIDs []string, videoUrlTemplate 
 			feedUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=" + channelOrPlaylistIDs[i]
 		}
 
-		request, _ := http.NewRequest("GET", feedUrl, nil)
+		request, _ := http.NewRequestWithContext(ctx, "GET", feedUrl, nil)
 		requests = append(requests, request)
 	}
 
@@ -206,7 +206,7 @@ func fetchYoutubeChannelUploads(channelOrPlaylistIDs []string, videoUrlTemplate 
 	var fallbacks []fallbackEntry
 	for _, idx := range uulfIndices {
 		if errs[idx] != nil && strings.Contains(errs[idx].Error(), "status code 404") {
-			req, _ := http.NewRequest("GET", "https://www.youtube.com/feeds/videos.xml?channel_id="+channelOrPlaylistIDs[idx], nil)
+			req, _ := http.NewRequestWithContext(ctx, "GET", "https://www.youtube.com/feeds/videos.xml?channel_id="+channelOrPlaylistIDs[idx], nil)
 			fallbacks = append(fallbacks, fallbackEntry{originalIdx: idx, request: req})
 		}
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"iter"
-	"log"
+	"log/slog"
 	"maps"
 	"net"
 	"os"
@@ -100,17 +100,18 @@ type user struct {
 }
 
 type page struct {
-	Title                  string  `yaml:"name"`
-	Slug                   string  `yaml:"slug"`
-	DynamicUpdates         *bool   `yaml:"dynamic-updates"`
-	Width                  string  `yaml:"width"`
-	DesktopNavigationWidth string  `yaml:"desktop-navigation-width"`
-	ShowMobileHeader       bool    `yaml:"show-mobile-header"`
-	HideDesktopNavigation  bool    `yaml:"hide-desktop-navigation"`
-	CenterVertically       bool    `yaml:"center-vertically"`
-	HideFromNavigation     bool    `yaml:"hide-from-navigation"`
-	KeyBind                string  `yaml:"key-bind"`
-	HeadWidgets            widgets `yaml:"head-widgets"`
+	Title                  string          `yaml:"name"`
+	NameIcon               customIconField `yaml:"name-icon"`
+	Slug                   string          `yaml:"slug"`
+	DynamicUpdates         *bool           `yaml:"dynamic-updates"`
+	Width                  string          `yaml:"width"`
+	DesktopNavigationWidth string          `yaml:"desktop-navigation-width"`
+	ShowMobileHeader       bool            `yaml:"show-mobile-header"`
+	HideDesktopNavigation  bool            `yaml:"hide-desktop-navigation"`
+	CenterVertically       bool            `yaml:"center-vertically"`
+	HideFromNavigation     bool            `yaml:"hide-from-navigation"`
+	KeyBind                string          `yaml:"key-bind"`
+	HeadWidgets            widgets         `yaml:"head-widgets"`
 	Columns                []struct {
 		Size    string  `yaml:"size"`
 		Widgets widgets `yaml:"widgets"`
@@ -411,10 +412,7 @@ func configFilesWatcher(
 		for filePath := range newWatched {
 			if _, ok := previousWatched[filePath]; !ok {
 				if err := watcher.Add(filePath); err != nil {
-					log.Printf(
-						"Could not add file to watcher, changes to this file will not trigger a reload. path: %s, error: %v",
-						filePath, err,
-					)
+					slog.Warn("Could not add file to watcher, changes to this file will not trigger a reload", "path", filePath, "error", err)
 				}
 			}
 		}

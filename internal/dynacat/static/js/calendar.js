@@ -1,5 +1,6 @@
 import { directions, easeOutQuint, slideFade } from "./animations.js";
 import { elem, repeat, text } from "./templating.js";
+import { setupPopovers } from "./popover.js";
 
 const FULL_MONTH_SLOTS = 7*6;
 const WEEKDAY_ABBRS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -30,22 +31,80 @@ const [datesEntranceLeft, datesEntranceRight] = directions(
 const undoEntrance = slideFade({ direction: "left", distance: "100%", duration: 300 });
 
 export default function(element) {
+    // Guard against double-initialization: a built calendar still carries the
+    // "calendar" class, so if setup runs again it must not rebuild it (which would
+    // create a second instance and replay the month animation).
+    if (element.querySelector(".calendar-dates")) return;
+
+    const widgetElement = element.closest("[data-widget-id]");
+    const releasesEnabled = element.dataset.calendarReleases === "true" && widgetElement !== null;
+
+    const releases = releasesEnabled
+        ? Releases(widgetElement.dataset.widgetId, Number(element.dataset.calendarReleasesInterval) || 0)
+        : null;
+
     element.swapWith(Calendar(
-        Number(element.dataset.firstDayOfWeek ?? 1)
+        Number(element.dataset.firstDayOfWeek ?? 1),
+        releases
     ));
 }
 
+// Releases manages fetching + caching per-month Sonarr/Radarr release data and
+// rendering it as markers/popovers inside the calendar day cells.
+function Releases(widgetId, intervalMs) {
+    const base = (typeof pageData !== "undefined" && pageData.baseURL) || "";
+    const cache = new Map();
+
+    const fetchMonth = async (date, force) => {
+        const key = monthKey(date);
+
+        if (!force && cache.has(key)) return cache.get(key);
+
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+
+        try {
+            const resp = await fetch(`${base}/api/widgets/${widgetId}/action/releases/${year}/${month}`, { method: "POST" });
+            if (!resp.ok) return cache.get(key) || {};
+            const data = await resp.json();
+            cache.set(key, data || {});
+            return cache.get(key);
+        } catch (e) {
+            console.error("calendar: failed to fetch releases", e);
+            return cache.get(key) || {};
+        }
+    };
+
+    return {
+        intervalMs,
+        getCached: (date) => cache.get(monthKey(date)) || {},
+        fetchMonth,
+        afterRender: setupPopovers,
+    };
+}
+
 // TODO: when viewing the previous/next month, display the current date if it's within the spill-over days
-function Calendar(firstDay) {
+function Calendar(firstDay, releases) {
     let header, dates;
     let advanceTimeTicker;
+    let releaseTicker;
     let now = new Date();
     let activeDate;
+
+    const loadReleases = (date, force) => {
+        if (!releases) return;
+        releases.fetchMonth(date, force).then(() => {
+            if (monthKey(activeDate) === monthKey(date)) {
+                dates.component.applyMarkers(activeDate);
+            }
+        });
+    };
 
     const update = (newDate) => {
         header.component.update(now, newDate);
         dates.component.update(now, newDate);
         activeDate = newDate;
+        loadReleases(newDate, false);
     };
 
     const autoAdvanceNow = () => {
@@ -63,14 +122,24 @@ function Calendar(firstDay) {
 
     const calendar = elem().classes("calendar").append(
         header = Header(nextClicked, prevClicked, undoClicked),
-        dates = Dates(firstDay)
+        dates = Dates(firstDay, releases)
     );
 
     update(now);
     autoAdvanceNow();
 
+    // Only poll for live updates when the page has dynamic updates enabled, matching
+    // SSE/widget polling. The initial fetch above still runs so markers show either way.
+    const dynamicUpdatesEnabled = typeof pageData !== "undefined" && pageData.dynamicUpdateEnabled;
+    if (releases && releases.intervalMs > 0 && dynamicUpdatesEnabled) {
+        releaseTicker = setInterval(() => loadReleases(activeDate, true), releases.intervalMs);
+    }
+
     return calendar.component({
-        suspend: () => clearTimeout(advanceTimeTicker)
+        suspend: () => {
+            clearTimeout(advanceTimeTicker);
+            clearInterval(releaseTicker);
+        }
     });
 }
 
@@ -127,8 +196,35 @@ function Header(nextClicked, prevClicked, undoClicked) {
     });
 }
 
-function Dates(firstDay) {
+function Dates(firstDay, releases) {
     let dates, lastRenderedDate;
+
+    // applyMarkers (re)draws release indicators + popovers onto the day cells for
+    // the given month using whatever release data is currently cached.
+    const applyMarkers = function(newDate) {
+        if (!releases) return;
+
+        const data = releases.getCached(newDate);
+        const children = dates.children;
+
+        const firstWeekday = new Date(newDate.getFullYear(), newDate.getMonth(), 1).getDay();
+        const previousMonthSpilloverDays = (firstWeekday - firstDay + 7) % 7 || 7;
+        const firstCellDate = new Date(newDate.getFullYear(), newDate.getMonth(), 1 - previousMonthSpilloverDays);
+
+        for (let i = 0; i < FULL_MONTH_SLOTS; i++) {
+            const cell = children[i];
+            const existing = cell.querySelector(".calendar-release");
+            if (existing) existing.remove();
+
+            const cellDate = new Date(firstCellDate.getFullYear(), firstCellDate.getMonth(), firstCellDate.getDate() + i);
+            const items = data[isoDate(cellDate)];
+            if (items && items.length) {
+                cell.append(releaseMarker(items));
+            }
+        }
+
+        releases.afterRender();
+    };
 
     const updateFullMonth = function(now, newDate) {
         const firstWeekday = new Date(newDate.getFullYear(), newDate.getMonth(), 1).getDay();
@@ -163,6 +259,10 @@ function Dates(firstDay) {
         }
 
         lastRenderedDate = newDate;
+
+        // Day numbers are set via .text() which wipes any previously appended
+        // markers, so re-apply them after rendering the grid.
+        applyMarkers(newDate);
     };
 
     const update = function(now, newDate) {
@@ -189,7 +289,65 @@ function Dates(firstDay) {
         dates = elem().classes("calendar-dates", "margin-top-3").append(
             ...elem().classes("calendar-date").duplicate(FULL_MONTH_SLOTS)
         )
-    ).component({ update });
+    ).component({ update, applyMarkers });
+}
+
+function releaseMarker(items) {
+    const list = elem().classes("list", "list-gap-10");
+    for (const item of items) {
+        list.append(releaseCard(item));
+    }
+
+    return elem()
+        .classes("calendar-release")
+        .attrs({
+            "data-popover-type": "html",
+            "data-popover-position": "above",
+            "data-popover-max-width": "340px",
+        })
+        .append(
+            elem().classes("calendar-release-indicator"),
+            elem().attr("data-popover-html", "").append(list)
+        );
+}
+
+function releaseCard(item) {
+    const body = elem().classes("min-width-0", "flex-1").append(
+        elem().classes("size-h6", "color-subdue").text(item.source)
+    );
+
+    body.append(elem().classes("color-highlight", "text-truncate").text(item.title));
+
+    if (item.description) {
+        body.append(elem().classes("color-base", "text-truncate-2-lines", "margin-top-3").text(item.description));
+    }
+
+    const card = (item.link
+        ? elem("a").attrs({ href: item.link, target: "_blank", rel: "noreferrer" })
+        : elem()
+    ).classes("calendar-release-card", "flex", "items-center", "gap-10");
+
+    if (item.thumbnail) {
+        card.append(
+            elem().classes("calendar-release-thumb", "thumbnail-container").append(
+                elem("img").classes("thumbnail").attrs({ src: item.thumbnail, loading: "lazy", alt: "" })
+            )
+        );
+    }
+
+    card.append(body);
+
+    return card;
+}
+
+function isoDate(date) {
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${date.getFullYear()}-${month < 10 ? "0" : ""}${month}-${day < 10 ? "0" : ""}${day}`;
+}
+
+function monthKey(date) {
+    return `${date.getFullYear()}-${date.getMonth() + 1}`;
 }
 
 function datesWithinSameMonth(d1, d2) {

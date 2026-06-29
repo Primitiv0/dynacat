@@ -3,7 +3,7 @@ package dynacat
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +14,8 @@ import (
 var buildVersion = "dev"
 
 func Main() int {
+	configureLogging()
+
 	options, err := parseCliOptions()
 	if err != nil {
 		fmt.Println(err)
@@ -115,7 +117,7 @@ func resolveConfigPath(primaryPath string) string {
 
 	glancePath := filepath.Join(filepath.Dir(primaryPath), "glance.yml")
 	if stat, err := os.Stat(glancePath); err == nil && !stat.IsDir() && stat.Size() > 0 {
-		log.Println("Warning: Using legacy glance.yml config file. Please rename it to dynacat.yml to avoid deprecation issues.")
+		slog.Warn("Using legacy glance.yml config file. Please rename it to dynacat.yml to avoid deprecation issues")
 		return glancePath
 	}
 
@@ -132,12 +134,12 @@ func serveApp(configPath string) error {
 
 	onChange := func(newContents []byte) {
 		if stopServer != nil {
-			log.Println("Config file changed, reloading...")
+			slog.Info("Config file changed, reloading")
 		}
 
 		config, err := newConfigFromYAML(newContents)
 		if err != nil {
-			log.Printf("Config has errors: %v", err)
+			slog.Error("Config has errors", "error", err)
 
 			if !hadValidConfigOnStartup {
 				close(exitChannel)
@@ -148,7 +150,7 @@ func serveApp(configPath string) error {
 
 		app, err := newApplication(config)
 		if err != nil {
-			log.Printf("Failed to create application: %v", err)
+			slog.Error("Failed to create application", "error", err)
 
 			if !hadValidConfigOnStartup {
 				close(exitChannel)
@@ -163,7 +165,7 @@ func serveApp(configPath string) error {
 
 		if stopServer != nil {
 			if err := stopServer(); err != nil {
-				log.Printf("Error while trying to stop server: %v", err)
+				slog.Error("Error while trying to stop server", "error", err)
 			}
 		}
 
@@ -172,13 +174,13 @@ func serveApp(configPath string) error {
 			startServer, stopServer = app.server()
 
 			if err := startServer(); err != nil {
-				log.Printf("Failed to start server: %v", err)
+				slog.Error("Failed to start server", "error", err)
 			}
 		}()
 	}
 
 	onErr := func(err error) {
-		log.Printf("Error watching config files: %v", err)
+		slog.Error("Error watching config files", "error", err)
 	}
 
 	configContents, configIncludes, err := parseYAMLIncludes(configPath)
@@ -190,7 +192,7 @@ func serveApp(configPath string) error {
 	if err == nil {
 		defer stopWatching()
 	} else {
-		log.Printf("Error starting file watcher, config file changes will require a manual restart. (%v)", err)
+		slog.Warn("Error starting file watcher, config file changes will require a manual restart", "error", err)
 
 		config, err := newConfigFromYAML(configContents)
 		if err != nil {
@@ -236,8 +238,8 @@ func serveUpdateNoticeIfConfigLocationNotMigrated(configPath string) bool {
 	mux := http.NewServeMux()
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusServiceUnavailable)
 		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusServiceUnavailable)
 		w.Write([]byte(bodyContents))
 	})
 

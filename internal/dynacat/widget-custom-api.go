@@ -472,17 +472,21 @@ func customAPITemplateFuncs(providers *widgetProviders) template.FuncMap {
 	var regexpCacheMu sync.Mutex
 	var regexpCache = make(map[string]*regexp.Regexp)
 
-	getCachedRegexp := func(pattern string) *regexp.Regexp {
+	getCachedRegexp := func(pattern string) (*regexp.Regexp, error) {
 		regexpCacheMu.Lock()
 		defer regexpCacheMu.Unlock()
 
 		regex, exists := regexpCache[pattern]
 		if !exists {
-			regex = regexp.MustCompile(pattern)
+			var err error
+			regex, err = regexp.Compile(pattern)
+			if err != nil {
+				return nil, err
+			}
 			regexpCache[pattern] = regex
 		}
 
-		return regex
+		return regex, nil
 	}
 
 	doMathOpWithAny := func(a, b any, op string) any {
@@ -606,22 +610,30 @@ func customAPITemplateFuncs(providers *widgetProviders) template.FuncMap {
 			if s == "" {
 				return ""
 			}
-
-			return getCachedRegexp(pattern).ReplaceAllString(s, replacement)
+			regex, err := getCachedRegexp(pattern)
+			if err != nil {
+				return ""
+			}
+			return regex.ReplaceAllString(s, replacement)
 		},
 		"findMatch": func(pattern, s string) string {
 			if s == "" {
 				return ""
 			}
-
-			return getCachedRegexp(pattern).FindString(s)
+			regex, err := getCachedRegexp(pattern)
+			if err != nil {
+				return ""
+			}
+			return regex.FindString(s)
 		},
 		"findSubmatch": func(pattern, s string) string {
 			if s == "" {
 				return ""
 			}
-
-			regex := getCachedRegexp(pattern)
+			regex, err := getCachedRegexp(pattern)
+			if err != nil {
+				return ""
+			}
 			return itemAtIndexOrDefault(regex.FindStringSubmatch(s), 1, "")
 		},
 		"percentChange": percentChange,

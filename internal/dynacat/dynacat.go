@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -78,12 +78,12 @@ type application struct {
 
 func newApplication(c *config) (*application, error) {
 	app := &application{
-		Version:        buildVersion,
-		CreatedAt:      time.Now(),
-		Config:         *c,
-		slugToPage:     make(map[string]*page),
-		widgetByID:     make(map[uint64]widget),
-		widgetToPage:   make(map[uint64]*page),
+		Version:          buildVersion,
+		CreatedAt:        time.Now(),
+		Config:           *c,
+		slugToPage:       make(map[string]*page),
+		widgetByID:       make(map[uint64]widget),
+		widgetToPage:     make(map[uint64]*page),
 		sseClients:       make(map[*sseClient]struct{}),
 		imageProxyURLs:   make(map[string]imageProxyInfo),
 		todoListIDToPage: make(map[string]*page),
@@ -266,6 +266,8 @@ func newApplication(c *config) (*application, error) {
 			page.Slug = titleToSlug(page.Title)
 		}
 
+		page.NameIcon.prepare(providers)
+
 		if slices.Contains(reservedPageSlugs, page.Slug) {
 			return nil, fmt.Errorf("page slug \"%s\" is reserved", page.Slug)
 		}
@@ -417,22 +419,11 @@ func (a *application) sseUnregisterClient(c *sseClient) {
 	a.sseMu.Unlock()
 }
 
-func (a *application) sseBroadcast(msg string) {
-	a.sseMu.RLock()
-	defer a.sseMu.RUnlock()
-	for c := range a.sseClients {
-		select {
-		case c.ch <- msg:
-		default: // client too slow; drop rather than block
-		}
-	}
-}
-
 func (p *page) updateOutdatedWidgets() {
 	now := time.Now()
 
 	var wg sync.WaitGroup
-	context := context.Background()
+	ctx := context.Background()
 
 	for w := range p.HeadWidgets {
 		widget := p.HeadWidgets[w]
@@ -444,7 +435,7 @@ func (p *page) updateOutdatedWidgets() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			widget.update(context)
+			widget.update(withSharedFetchMaxAge(ctx, widget.getCacheDuration()))
 		}()
 	}
 
@@ -459,7 +450,7 @@ func (p *page) updateOutdatedWidgets() {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				widget.update(context)
+				widget.update(withSharedFetchMaxAge(ctx, widget.getCacheDuration()))
 			}()
 		}
 	}
@@ -601,7 +592,7 @@ func (a *application) handlePageRequest(w http.ResponseWriter, r *http.Request) 
 	var responseBytes bytes.Buffer
 	err := pageTemplate.Execute(&responseBytes, data)
 	if err != nil {
-		log.Printf("rendering page template: %v", err)
+		slog.Error("Rendering page template failed", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("internal server error"))
 		return
@@ -646,7 +637,7 @@ func (a *application) handlePageContentRequest(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 
 	if err != nil {
-		log.Printf("rendering page content template: %v", err)
+		slog.Error("Rendering page content template failed", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("internal server error"))
 		return
@@ -788,7 +779,7 @@ func (a *application) handleWidgetActionRequest(w http.ResponseWriter, r *http.R
 }
 
 func (a *application) StaticAssetPath(asset string) string {
-	return a.Config.Server.BaseURL + "/static/" + staticFSHash + "/" + asset
+	return a.Config.Server.BaseURL + "/static/" + getStaticFSHash() + "/" + asset
 }
 
 func (a *application) VersionedAssetPath(asset string) string {
@@ -819,7 +810,7 @@ func (a *application) handleTodoLoad(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := a.todoStorage.loadTasks(listID)
 	if err != nil {
-		log.Printf("todo load: %v", err)
+		slog.Error("Todo load failed", "list_id", listID, "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -848,7 +839,7 @@ func (a *application) handleTodoSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.todoStorage.saveTasks(listID, tasks); err != nil {
-		log.Printf("todo save: %v", err)
+		slog.Error("Todo save failed", "list_id", listID, "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -924,7 +915,7 @@ func (a *application) server() (func() error, func() error) {
 
 	if a.AnyAuthEnabled() {
 		mux.HandleFunc("GET /login", a.handleLoginPageRequest)
-		mux.HandleFunc("GET /logout", a.handleLogoutRequest)
+		mux.HandleFunc("POST /logout", a.handleLogoutRequest)
 	}
 
 	if a.PasswordEnabled {
@@ -942,9 +933,9 @@ func (a *application) server() (func() error, func() error) {
 	}
 
 	mux.Handle(
-		fmt.Sprintf("GET /static/%s/{path...}", staticFSHash),
+		fmt.Sprintf("GET /static/%s/{path...}", getStaticFSHash()),
 		http.StripPrefix(
-			"/static/"+staticFSHash,
+			"/static/"+getStaticFSHash(),
 			fileServerWithCache(http.FS(staticFS), STATIC_ASSETS_CACHE_DURATION),
 		),
 	)
@@ -973,7 +964,7 @@ func (a *application) server() (func() error, func() error) {
 		int(STATIC_ASSETS_CACHE_DURATION.Seconds()),
 	)
 
-	mux.HandleFunc(fmt.Sprintf("GET /static/%s/css/bundle.css", staticFSHash), func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(fmt.Sprintf("GET /static/%s/css/bundle.css", getStaticFSHash()), func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Cache-Control", assetCacheControlValue)
 		w.Header().Add("Content-Type", "text/css; charset=utf-8")
 		w.Write(bundledCSSContents)
@@ -1011,12 +1002,7 @@ func (a *application) server() (func() error, func() error) {
 	}
 
 	start := func() error {
-		log.Printf("Starting server on %s:%d (base-url: \"%s\", assets-path: \"%s\")\n",
-			a.Config.Server.Host,
-			a.Config.Server.Port,
-			a.Config.Server.BaseURL,
-			absAssetsPath,
-		)
+		slog.Info("Starting server", "host", a.Config.Server.Host, "port", a.Config.Server.Port, "base_url", a.Config.Server.BaseURL, "assets_path", absAssetsPath)
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return err

@@ -190,6 +190,9 @@ export function setupPopovers() {
     for (let i = 0; i < targets.length; i++) {
         const target = targets[i];
 
+        if (target._popoverInitialized) continue;
+        target._popoverInitialized = true;
+
         if (target.dataset.popoverTrigger === "click") {
             target.addEventListener("click", handleMouseEnter);
         } else {

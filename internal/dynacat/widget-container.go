@@ -34,7 +34,7 @@ func (widget *containerWidgetBase) _update(ctx context.Context) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			widget.update(ctx)
+			widget.update(withSharedFetchMaxAge(ctx, widget.getCacheDuration()))
 		}()
 	}
 

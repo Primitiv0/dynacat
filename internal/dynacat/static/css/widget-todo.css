@@ -60,6 +60,8 @@
 .todo-item {
     transform-origin: center;
     padding: 0.35rem 0;
+    padding-left: 0.7rem;
+    margin-left: -0.7rem;
 }
 
 .todo-item-checkbox {
@@ -177,6 +179,10 @@
 
     .todo-item .auto-scaling-textarea:focus {
         cursor: text;
+    }
+
+    .todo-item {
+        transition: background-color .2s;
     }
 
     .todo-item:hover {

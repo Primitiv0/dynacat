@@ -115,7 +115,14 @@ if (usernameInput && passwordInput && loginButton) {
 
         state.isLoading = false;
         if (response.status === 200) {
-            setTimeout(() => { window.location.href = pageData.baseURL + "/"; }, 300);
+            let destination = pageData.baseURL + "/";
+            try {
+                const data = await response.json();
+                if (data && typeof data.redirect === "string" && data.redirect.startsWith("/") && !data.redirect.startsWith("//")) {
+                    destination = data.redirect;
+                }
+            } catch (_) { /* no body; fall back to home */ }
+            setTimeout(() => { window.location.href = destination; }, 300);
 
             container.animate({
                 keyframes: [{ offset: 1, transform: "scale(0.95)", opacity: 0 }],

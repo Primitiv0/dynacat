@@ -370,6 +370,20 @@ kbd:active {
     position: relative;
 }
 
+.nav-item-icon {
+    width: 1.65rem;
+    height: 1.65rem;
+    margin-right: 0.5rem;
+    vertical-align: -0.2rem;
+    display: inline-block;
+}
+
+.nav-item-icon-mask {
+    background-color: currentColor;
+    -webkit-mask: var(--nav-item-icon-url) no-repeat center / contain;
+    mask: var(--nav-item-icon-url) no-repeat center / contain;
+}
+
 .nav-item:not(.nav-item-current):hover {
     border-bottom-color: var(--color-text-subdue);
     color: var(--color-text-highlight);

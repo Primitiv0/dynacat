@@ -54,11 +54,13 @@ func svgPolylineCoordsFromYValues(width float64, height float64, values []float6
 	max := slices.Max(values)
 
 	for i := range values {
-		coordinates[i] = fmt.Sprintf(
-			"%.2f,%.2f",
-			float64(i)*distanceBetweenPoints,
-			((max-values[i])/(max-min))*height+verticalPadding,
-		)
+		var y float64
+		if max == min {
+			y = height/2 + verticalPadding
+		} else {
+			y = ((max-values[i])/(max-min))*height + verticalPadding
+		}
+		coordinates[i] = fmt.Sprintf("%.2f,%.2f", float64(i)*distanceBetweenPoints, y)
 	}
 
 	return strings.Join(coordinates, " ")

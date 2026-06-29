@@ -379,6 +379,7 @@ type jellyfinLatestItem struct {
 	DateCreated    string `json:"DateCreated"`
 	RunTimeTicks   int64  `json:"RunTimeTicks"`
 	SeriesName     string `json:"SeriesName"`
+	SeriesId       string `json:"SeriesId"`
 	AlbumArtist    string `json:"AlbumArtist"`
 }
 
@@ -506,8 +507,15 @@ func (widget *latestMediaWidget) fetchJellyfinEmbyLatestFromParent(
 		}
 
 		if raw.Id != "" {
-			item.CoverURL = fmt.Sprintf("%s/Items/%s/Images/Art?api_key=%s", baseURL, raw.Id, host.Token)
-			item.ThumbnailURL = fmt.Sprintf("%s/Items/%s/Images/Primary?api_key=%s", baseURL, raw.Id, host.Token)
+			// For episodes use the parent series' images so the poster (not the
+			// episode still, which looks like "episode one") is shown.
+			imageID := raw.Id
+			if strings.EqualFold(raw.Type, "episode") && raw.SeriesId != "" {
+				imageID = raw.SeriesId
+			}
+
+			item.CoverURL = fmt.Sprintf("%s/Items/%s/Images/Art?api_key=%s", baseURL, imageID, host.Token)
+			item.ThumbnailURL = fmt.Sprintf("%s/Items/%s/Images/Primary?api_key=%s", baseURL, imageID, host.Token)
 			item.LinkURL = fmt.Sprintf("%s/web/index.html#!/details?id=%s", host.PublicBaseURL, raw.Id)
 		}
 

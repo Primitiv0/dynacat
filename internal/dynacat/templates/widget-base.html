@@ -1,7 +1,7 @@
 <div class="widget widget-type-{{ .GetType }}{{ if .CSSClass }} {{ .CSSClass }}{{ end }}"
      data-widget-id="{{ .GetID }}"
-     {{ if and .UpdateInterval (.IsDynamicUpdateEnabled) }}
-     data-update-interval="{{ .UpdateInterval.Milliseconds }}"
+     {{ if and (.UpdateIntervalMs) (.IsDynamicUpdateEnabled) }}
+     data-update-interval="{{ .UpdateIntervalMs }}"
      {{ end }}
      {{ if .Hidden }}data-widget-hidden="true"{{ end }}
      {{ if .IsLazyLoad }}data-lazy-load="true"{{ end }}

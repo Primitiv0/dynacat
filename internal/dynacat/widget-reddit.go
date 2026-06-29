@@ -150,6 +150,7 @@ type subredditResponseJson struct {
 			Data struct {
 				Id            string  `json:"id"`
 				Title         string  `json:"title"`
+				Subreddit     string  `json:"subreddit"`
 				Upvotes       int     `json:"ups"`
 				Url           string  `json:"url"`
 				Time          float64 `json:"created"`
@@ -300,6 +301,7 @@ func (widget *redditWidget) fetchSubredditPosts() (forumPostList, error) {
 
 		forumPost := forumPost{
 			Title:           html.UnescapeString(post.Title),
+			Subreddit:       post.Subreddit,
 			DiscussionUrl:   commentsUrl,
 			TargetUrlDomain: post.Domain,
 			CommentCount:    post.CommentsCount,

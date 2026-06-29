@@ -77,16 +77,16 @@ func (widget *contributionGraphWidget) update(ctx context.Context) {
 			weeks, monthLabels, total = buildContributionGrid(make(map[string]int))
 			err = nil
 		} else {
-			weeks, monthLabels, total, err = fetchGithubContributions(widget.User, widget.Token)
+			weeks, monthLabels, total, err = fetchGithubContributions(ctx, widget.User, widget.Token)
 		}
 	case "gitlab":
-		weeks, monthLabels, total, err = fetchGitlabContributions(widget.GitLabURL, widget.User, widget.GitLabToken)
+		weeks, monthLabels, total, err = fetchGitlabContributions(ctx, widget.GitLabURL, widget.User, widget.GitLabToken)
 	default:
 		if widget.Token == "" {
 			weeks, monthLabels, total = buildContributionGrid(make(map[string]int))
 			err = nil
 		} else {
-			weeks, monthLabels, total, err = fetchGithubContributions(widget.User, widget.Token)
+			weeks, monthLabels, total, err = fetchGithubContributions(ctx, widget.User, widget.Token)
 		}
 	}
 
@@ -124,7 +124,7 @@ type githubContributionResponse struct {
 	} `json:"errors"`
 }
 
-func fetchGithubContributions(user, token string) ([]contributionWeek, []contributionMonthLabel, int, error) {
+func fetchGithubContributions(ctx context.Context, user, token string) ([]contributionWeek, []contributionMonthLabel, int, error) {
 	type graphqlQuery struct {
 		Query string `json:"query"`
 	}
@@ -138,7 +138,7 @@ func fetchGithubContributions(user, token string) ([]contributionWeek, []contrib
 		return nil, nil, 0, err
 	}
 
-	req, err := http.NewRequest("POST", "https://api.github.com/graphql", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.github.com/graphql", bytes.NewReader(body))
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -166,10 +166,10 @@ func fetchGithubContributions(user, token string) ([]contributionWeek, []contrib
 	return weeks, monthLabels, total, nil
 }
 
-func fetchGitlabContributions(baseURL, user, token string) ([]contributionWeek, []contributionMonthLabel, int, error) {
+func fetchGitlabContributions(ctx context.Context, baseURL, user, token string) ([]contributionWeek, []contributionMonthLabel, int, error) {
 	url := fmt.Sprintf("%s/users/%s/calendar.json", baseURL, user)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, nil, 0, err
 	}

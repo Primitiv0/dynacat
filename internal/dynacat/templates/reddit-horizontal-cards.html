@@ -16,7 +16,7 @@
                 {{ if ne "" .TargetUrl }}
                 <a class="color-highlight size-h5 text-truncate visited-indicator" href="{{ .TargetUrl }}" target="_blank" rel="noreferrer">{{ .TargetUrlDomain }}</a>
                 {{ else }}
-                <div class="color-highlight size-h5 text-truncate">/r/{{ $.Subreddit }}</div>
+                <div class="color-highlight size-h5 text-truncate">/r/{{ .Subreddit }}</div>
                 {{ end }}
                 <a href="{{ .DiscussionUrl }}" class="text-truncate-3-lines color-primary-if-not-visited margin-top-7 margin-bottom-auto" target="_blank" rel="noreferrer">{{ .Title }}</a>
                 <ul class="list-horizontal-text margin-top-7">
